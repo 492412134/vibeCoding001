@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.vibecoding001.mapper.RuleMapper">
+
+    <resultMap id="BaseResultMap" type="com.example.vibecoding001.entity.RuleEntity">
+        <id column="id" property="id" jdbcType="VARCHAR"/>
+        <result column="name" property="name" jdbcType="VARCHAR"/>
+        <result column="condition" property="condition" jdbcType="VARCHAR"/>
+        <result column="action" property="action" jdbcType="VARCHAR"/>
+        <result column="priority" property="priority" jdbcType="INTEGER"/>
+        <result column="enabled" property="enabled" jdbcType="BOOLEAN"/>
+        <result column="version" property="version" jdbcType="INTEGER"/>
+        <result column="version_comment" property="versionComment" jdbcType="VARCHAR"/>
+        <result column="created_at" property="createdAt" jdbcType="TIMESTAMP"/>
+        <result column="updated_at" property="updatedAt" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <resultMap id="HistoryResultMap" type="com.example.vibecoding001.entity.RuleHistoryEntity">
+        <id column="id" property="id" jdbcType="BIGINT"/>
+        <result column="rule_id" property="ruleId" jdbcType="VARCHAR"/>
+        <result column="version" property="version" jdbcType="INTEGER"/>
+        <result column="name" property="name" jdbcType="VARCHAR"/>
+        <result column="condition" property="condition" jdbcType="VARCHAR"/>
+        <result column="action" property="action" jdbcType="VARCHAR"/>
+        <result column="priority" property="priority" jdbcType="INTEGER"/>
+        <result column="enabled" property="enabled" jdbcType="BOOLEAN"/>
+        <result column="version_comment" property="versionComment" jdbcType="VARCHAR"/>
+        <result column="created_by" property="createdBy" jdbcType="VARCHAR"/>
+        <result column="created_at" property="createdAt" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, name, `condition`, action, priority, enabled, version, version_comment, created_at, updated_at
+    </sql>
+
+    <sql id="History_Column_List">
+        id, rule_id, version, name, `condition`, action, priority, enabled, version_comment, created_by, created_at
+    </sql>
+
+    <insert id="insert" parameterType="com.example.vibecoding001.entity.RuleEntity">
+        INSERT INTO rule (id, name, `condition`, action, priority, enabled, version, version_comment)
+        VALUES (#{id}, #{name}, #{condition}, #{action}, #{priority}, #{enabled}, #{version}, #{versionComment})
+    </insert>
+
+    <update id="update" parameterType="com.example.vibecoding001.entity.RuleEntity">
+        UPDATE rule
+        SET name = #{name},
+            `condition` = #{condition},
+            action = #{action},
+            priority = #{priority},
+            enabled = #{enabled},
+            version = #{version},
+            version_comment = #{versionComment}
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById" parameterType="java.lang.String">
+        DELETE FROM rule WHERE id = #{id}
+    </delete>
+
+    <select id="selectById" parameterType="java.lang.String" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM rule
+        WHERE id = #{id}
+    </select>
+
+    <select id="selectAll" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM rule
+        ORDER BY priority DESC, created_at ASC
+    </select>
+
+    <select id="selectAllEnabled" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM rule
+        WHERE enabled = 1
+        ORDER BY priority DESC, created_at ASC
+    </select>
+
+    <!-- 更新规则启用状态 -->
+    <update id="updateEnabledStatus">
+        UPDATE rule
+        SET enabled = #{enabled},
+            updated_at = NOW()
+        WHERE id = #{ruleId}
+    </update>
+
+    <insert id="insertHistory" parameterType="com.example.vibecoding001.entity.RuleHistoryEntity">
+        INSERT INTO rule_history (rule_id, version, name, `condition`, action, priority, enabled, version_comment, created_by)
+        VALUES (#{ruleId}, #{version}, #{name}, #{condition}, #{action}, #{priority}, #{enabled}, #{versionComment}, #{createdBy})
+    </insert>
+
+    <select id="selectHistoryByRuleId" parameterType="java.lang.String" resultMap="HistoryResultMap">
+        SELECT <include refid="History_Column_List"/>
+        FROM rule_history
+        WHERE rule_id = #{ruleId}
+        ORDER BY version DESC, created_at DESC
+    </select>
+
+    <select id="selectHistoryByVersion" resultMap="HistoryResultMap">
+        SELECT <include refid="History_Column_List"/>
+        FROM rule_history
+        WHERE rule_id = #{ruleId} AND version = #{version}
+    </select>
+
+    <update id="rollbackToVersion">
+        UPDATE rule r
+        INNER JOIN rule_history h ON r.id = h.rule_id
+        SET r.name = h.name,
+            r.`condition` = h.`condition`,
+            r.action = h.action,
+            r.priority = h.priority,
+            r.enabled = h.enabled,
+            r.version = h.version,
+            r.version_comment = CONCAT('回滚到版本 ', h.version)
+        WHERE r.id = #{ruleId} AND h.version = #{version}
+    </update>
+
+</mapper>

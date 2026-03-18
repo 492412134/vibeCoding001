@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>外部API配置管理</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        .card h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-weight: 600;
+        }
+        
+        input, select, textarea {
+            width: 100%;
+            padding: 10px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+        
+        .btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+        }
+        
+        .btn-warning {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+        
+        .btn-info {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #555;
+        }
+        
+        tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .status-enabled {
+            color: #28a745;
+            font-weight: 600;
+        }
+        
+        .status-disabled {
+            color: #dc3545;
+            font-weight: 600;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+        
+        .modal-content {
+            background-color: white;
+            margin: 5% auto;
+            padding: 30px;
+            border-radius: 15px;
+            width: 80%;
+            max-width: 800px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        
+        .close:hover {
+            color: #000;
+        }
+        
+        .example-box {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 10px;
+            font-size: 13px;
+        }
+        
+        .example-box h4 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        
+        .example-box pre {
+            background: #fff;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+        
+        .help-text {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        .two-column {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        .test-result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+        }
+        
+        .test-result.success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        
+        .test-result.error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div style="margin-bottom: 20px;">
+            <a href="/rule-engine.html" style="color: #667eea; text-decoration: none; font-size: 16px;">
+                ← 返回规则引擎
+            </a>
+        </div>
+        <h1>🌐 外部API配置管理</h1>
+        
+        <!-- API配置表单 -->
+        <div class="card">
+            <h2>添加/编辑 API配置</h2>
+            <form id="apiConfigForm">
+                <input type="hidden" id="apiId" name="apiId">
+                
+                <div class="two-column">
+                    <div class="form-group">
+                        <label>API名称 *</label>
+                        <input type="text" id="apiName" name="apiName" placeholder="如：残疾人身份验证接口" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>HTTP方法 *</label>
+                        <select id="httpMethod" name="httpMethod" required>
+                            <option value="POST">POST</option>
+                            <option value="GET">GET</option>
+                            <option value="PUT">PUT</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>API地址 *</label>
+                    <input type="text" id="apiUrl" name="apiUrl" placeholder="https://api.example.com/check" required>
+                    <div class="help-text">支持变量占位符，如：https://api.example.com/check?id=${idCard}</div>
+                </div>
+                
+                <div class="form-group">
+                    <label>请求体模板 (JSON格式)</label>
+                    <textarea id="requestTemplate" name="requestTemplate" placeholder='{"idCard": "${idCard}", "name": "${name}"}'></textarea>
+                    <div class="help-text">支持${变量名}占位符，会在调用时自动替换为实际值</div>
+                </div>
+                
+                <div class="two-column">
+                    <div class="form-group">
+                        <label>响应字段路径</label>
+                        <input type="text" id="responseField" name="responseField" placeholder="data.isDisabled">
+                        <div class="help-text">从响应JSON中提取的字段路径，如：data.result.isValid</div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>成功条件表达式 *</label>
+                        <input type="text" id="successCondition" name="successCondition" placeholder="response == true" required>
+                        <div class="help-text">JavaScript表达式，response变量表示提取的字段值</div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>请求头 (JSON格式)</label>
+                    <textarea id="headers" name="headers" placeholder='{"Content-Type": "application/json", "Authorization": "Bearer ${token}"}'></textarea>
+                </div>
+                
+                <div class="two-column">
+                    <div class="form-group">
+                        <label>超时时间 (毫秒)</label>
+                        <input type="number" id="timeout" name="timeout" value="5000" min="1000" max="60000">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>描述</label>
+                        <input type="text" id="description" name="description" placeholder="接口用途说明">
+                    </div>
+                </div>
+                
+                <div>
+                    <button type="submit" class="btn btn-primary">保存配置</button>
+                    <button type="button" class="btn btn-secondary" onclick="resetForm()">重置</button>
+                    <button type="button" class="btn btn-info" onclick="loadExample()">加载示例</button>
+                    <button type="button" class="btn btn-success" onclick="openCaseModal()">添加案例</button>
+                </div>
+            </form>
+        </div>
+        
+        <!-- 示例说明 -->
+        <div class="card">
+            <h2>配置示例</h2>
+            <div class="example-box">
+                <h4>📝 场景：验证身份证是否为残疾人</h4>
+                <p><strong>API地址：</strong>https://disability.gov.cn/api/verify</p>
+                <p><strong>请求体模板：</strong></p>
+                <pre>{
+  "idCard": "${idCard}",
+  "requestTime": "${currentTime}"
+}</pre>
+                <p><strong>响应字段路径：</strong>data.isDisabled</p>
+                <p><strong>成功条件：</strong>response == true</p>
+                <p><strong>说明：</strong>调用接口后，如果data.isDisabled为true，则规则通过</p>
+            </div>
+        </div>
+        
+        <!-- API列表 -->
+        <div class="card">
+            <h2>API配置列表</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>API名称</th>
+                        <th>API地址</th>
+                        <th>HTTP方法</th>
+                        <th>状态</th>
+                        <th>创建时间</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="apiList">
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <!-- 测试弹窗 -->
+    <div id="testModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeTestModal()">&times;</span>
+            <h2>测试API调用</h2>
+            <div id="testForm">
+                <div class="form-group">
+                    <label>测试数据 (JSON格式)</label>
+                    <textarea id="testData" rows="5" placeholder='{"idCard": "110101199001011234", "name": "张三"}'></textarea>
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <button class="btn btn-info" onclick="loadTestExample()">加载示例数据</button>
+                    <button class="btn btn-secondary" onclick="clearTestData()">清空</button>
+                </div>
+                <button class="btn btn-success" onclick="executeTest()">执行测试</button>
+            </div>
+            <div id="testResult"></div>
+        </div>
+    </div>
+
+    <!-- 案例选择弹窗 -->
+    <div id="caseModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeCaseModal()">&times;</span>
+            <h2>🎯 选择API案例</h2>
+            <p style="margin-bottom: 20px; color: #666;">选择一个预设的API案例，一键添加到配置表单</p>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px;">
+                <!-- 案例1：残疾人验证 -->
+                <div style="border: 1px solid #e0e0e0; border-radius: 8px; padding: 15px; cursor: pointer; transition: all 0.3s;" onclick="loadCase('disability')">
+                    <h4 style="color: #667eea; margin-bottom: 10px;">残疾人身份验证</h4>
+                    <p style="font-size: 12px; margin-bottom: 5px;">验证身份证是否为残疾人</p>
+                    <p style="font-size: 12px; color: #888; margin-bottom: 10px;">/mock-api/disability/verify</p>
+                    <button class="btn btn-info" style="width: 100%; font-size: 12px;">选择此案例</button>
+                </div>
+                
+                <!-- 案例2：信用评分 -->
+                <div style="border: 1px solid #e0e0e0; border-radius: 8px; padding: 15px; cursor: pointer; transition: all 0.3s;" onclick="loadCase('credit')">
+                    <h4 style="color: #667eea; margin-bottom: 10px;">信用评分查询</h4>
+                    <p style="font-size: 12px; margin-bottom: 5px;">获取信用评分（500-850分）</p>
+                    <p style="font-size: 12px; color: #888; margin-bottom: 10px;">/mock-api/credit/score</p>
+                    <button class="btn btn-info" style="width: 100%; font-size: 12px;">选择此案例</button>
+                </div>
+                
+                <!-- 案例3：黑名单检查 -->
+                <div style="border: 1px solid #e0e0e0; border-radius: 8px; padding: 15px; cursor: pointer; transition: all 0.3s;" onclick="loadCase('blacklist')">
+                    <h4 style="color: #667eea; margin-bottom: 10px;">黑名单检查</h4>
+                    <p style="font-size: 12px; margin-bottom: 5px;">检查是否在黑名单中</p>
+                    <p style="font-size: 12px; color: #888; margin-bottom: 10px;">/mock-api/blacklist/check</p>
+                    <button class="btn btn-info" style="width: 100%; font-size: 12px;">选择此案例</button>
+                </div>
+                
+                <!-- 案例4：年龄验证 -->
+                <div style="border: 1px solid #e0e0e0; border-radius: 8px; padding: 15px; cursor: pointer; transition: all 0.3s;" onclick="loadCase('age')">
+                    <h4 style="color: #667eea; margin-bottom: 10px;">年龄验证</h4>
+                    <p style="font-size: 12px; margin-bottom: 5px;">根据身份证号计算年龄</p>
+                    <p style="font-size: 12px; color: #888; margin-bottom: 10px;">/mock-api/age/verify</p>
+                    <button class="btn btn-info" style="width: 100%; font-size: 12px;">选择此案例</button>
+                </div>
+                
+                <!-- 案例5：手机号验证 -->
+                <div style="border: 1px solid #e0e0e0; border-radius: 8px; padding: 15px; cursor: pointer; transition: all 0.3s;" onclick="loadCase('phone')">
+                    <h4 style="color: #667eea; margin-bottom: 10px;">手机号验证</h4>
+                    <p style="font-size: 12px; margin-bottom: 5px;">验证手机号格式和运营商</p>
+                    <p style="font-size: 12px; color: #888; margin-bottom: 10px;">/mock-api/phone/verify</p>
+                    <button class="btn btn-info" style="width: 100%; font-size: 12px;">选择此案例</button>
+                </div>
+                
+                <!-- 案例6：银行四要素 -->
+                <div style="border: 1px solid #e0e0e0; border-radius: 8px; padding: 15px; cursor: pointer; transition: all 0.3s;" onclick="loadCase('bank')">
+                    <h4 style="color: #667eea; margin-bottom: 10px;">银行四要素验证</h4>
+                    <p style="font-size: 12px; margin-bottom: 5px;">验证姓名、身份证、银行卡</p>
+                    <p style="font-size: 12px; color: #888; margin-bottom: 10px;">/mock-api/bank/verify</p>
+                    <button class="btn btn-info" style="width: 100%; font-size: 12px;">选择此案例</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentTestApiId = null;
+        
+        // 页面加载时获取API列表
+        document.addEventListener('DOMContentLoaded', function() {
+            loadApiList();
+        });
+        
+        // 表单提交
+        document.getElementById('apiConfigForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            saveApiConfig();
+        });
+        
+        // 保存API配置
+        function saveApiConfig() {
+            const apiId = document.getElementById('apiId').value;
+            const data = {
+                apiName: document.getElementById('apiName').value,
+                apiUrl: document.getElementById('apiUrl').value,
+                httpMethod: document.getElementById('httpMethod').value,
+                requestTemplate: document.getElementById('requestTemplate').value,
+                responseField: document.getElementById('responseField').value,
+                successCondition: document.getElementById('successCondition').value,
+                headers: document.getElementById('headers').value,
+                timeout: parseInt(document.getElementById('timeout').value),
+                description: document.getElementById('description').value
+            };
+            
+            if (apiId) {
+                data.apiId = apiId;
+            }
+            
+            const url = apiId ? '/api/external/config/update' : '/api/external/config/add';
+            const method = apiId ? 'PUT' : 'POST';
+            
+            fetch(url, {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.text())
+            .then(result => {
+                alert(result);
+                resetForm();
+                loadApiList();
+            })
+            .catch(error => {
+                alert('保存失败：' + error);
+            });
+        }
+        
+        // 加载API列表
+        function loadApiList() {
+            fetch('/api/external/config/list')
+            .then(response => response.json())
+            .then(data => {
+                const tbody = document.getElementById('apiList');
+                tbody.innerHTML = '';
+                
+                data.forEach(api => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${api.apiName}</td>
+                        <td>${api.apiUrl}</td>
+                        <td>${api.httpMethod}</td>
+                        <td class="${api.enabled ? 'status-enabled' : 'status-disabled'}">
+                            ${api.enabled ? '启用' : '停用'}
+                        </td>
+                        <td>${new Date(api.createdAt).toLocaleString()}</td>
+                        <td>
+                            <button class="btn btn-info" onclick='editApi(${JSON.stringify(api)})'>编辑</button>
+                            <button class="btn btn-warning" onclick="toggleApi('${api.apiId}', ${!api.enabled})">
+                                ${api.enabled ? '停用' : '启用'}
+                            </button>
+                            <button class="btn btn-success" onclick="openTestModal('${api.apiId}')">测试</button>
+                            <button class="btn btn-secondary" onclick="deleteApi('${api.apiId}')">删除</button>
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            })
+            .catch(error => {
+                console.error('加载API列表失败：', error);
+            });
+        }
+        
+        // 编辑API
+        function editApi(api) {
+            document.getElementById('apiId').value = api.apiId;
+            document.getElementById('apiName').value = api.apiName;
+            document.getElementById('apiUrl').value = api.apiUrl;
+            document.getElementById('httpMethod').value = api.httpMethod;
+            document.getElementById('requestTemplate').value = api.requestTemplate || '';
+            document.getElementById('responseField').value = api.responseField || '';
+            document.getElementById('successCondition').value = api.successCondition || '';
+            document.getElementById('headers').value = api.headers || '';
+            document.getElementById('timeout').value = api.timeout || 5000;
+            document.getElementById('description').value = api.description || '';
+            
+            window.scrollTo(0, 0);
+        }
+        
+        // 切换API状态
+        function toggleApi(apiId, enabled) {
+            fetch(`/api/external/config/toggle/${apiId}?enabled=${enabled}`, {
+                method: 'POST'
+            })
+            .then(response => response.text())
+            .then(result => {
+                alert(result);
+                loadApiList();
+            })
+            .catch(error => {
+                alert('操作失败：' + error);
+            });
+        }
+        
+        // 删除API
+        function deleteApi(apiId) {
+            if (!confirm('确定要删除这个API配置吗？')) {
+                return;
+            }
+            
+            fetch(`/api/external/config/remove/${apiId}`, {
+                method: 'DELETE'
+            })
+            .then(response => response.text())
+            .then(result => {
+                alert(result);
+                loadApiList();
+            })
+            .catch(error => {
+                alert('删除失败：' + error);
+            });
+        }
+        
+        // 打开测试弹窗
+        function openTestModal(apiId) {
+            currentTestApiId = apiId;
+            document.getElementById('testModal').style.display = 'block';
+            document.getElementById('testResult').innerHTML = '';
+            document.getElementById('testData').value = '';
+        }
+        
+        // 关闭测试弹窗
+        function closeTestModal() {
+            document.getElementById('testModal').style.display = 'none';
+            currentTestApiId = null;
+        }
+        
+        // 执行测试
+        function executeTest() {
+            if (!currentTestApiId) return;
+            
+            let testData = {};
+            try {
+                const testDataStr = document.getElementById('testData').value.trim();
+                if (testDataStr) {
+                    testData = JSON.parse(testDataStr);
+                }
+            } catch (e) {
+                alert('测试数据JSON格式错误：' + e.message);
+                return;
+            }
+            
+            fetch(`/api/external/test/${currentTestApiId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(testData)
+            })
+            .then(response => response.json())
+            .then(result => {
+                const resultDiv = document.getElementById('testResult');
+                const isSuccess = result.success;
+                resultDiv.className = 'test-result ' + (isSuccess ? 'success' : 'error');
+                resultDiv.innerHTML = `
+                    <h3>测试结果</h3>
+                    <p><strong>API名称：</strong>${result.apiName}</p>
+                    <p><strong>调用结果：</strong>${isSuccess ? '✅ 成功' : '❌ 失败'}</p>
+                    <p><strong>HTTP状态：</strong>${result.httpStatus}</p>
+                    <p><strong>响应时间：</strong>${result.responseTime}ms</p>
+                    <p><strong>响应数据：</strong></p>
+                    <pre>${JSON.stringify(result.responseData, null, 2)}</pre>
+                    ${result.errorMessage ? `<p><strong>错误信息：</strong>${result.errorMessage}</p>` : ''}
+                `;
+            })
+            .catch(error => {
+                const resultDiv = document.getElementById('testResult');
+                resultDiv.className = 'test-result error';
+                resultDiv.innerHTML = `<p>测试失败：${error}</p>`;
+            });
+        }
+
+        // 加载测试示例数据
+        function loadTestExample() {
+            // 根据当前测试的API ID自动选择示例数据
+            if (currentTestApiId) {
+                // 获取API配置信息
+                fetch(`/api/external/config/list`)
+                .then(response => response.json())
+                .then(configs => {
+                    const apiConfig = configs.find(config => config.apiId === currentTestApiId);
+                    if (apiConfig) {
+                        let exampleData = {};
+                        
+                        // 根据API名称或URL判断使用哪种示例数据
+                        const apiName = apiConfig.apiName.toLowerCase();
+                        
+                        if (apiName.includes('残疾') || apiName.includes('disability')) {
+                            exampleData = {
+                                idCard: "110101199001011234",
+                                name: "张三"
+                            };
+                        } else if (apiName.includes('信用') || apiName.includes('credit')) {
+                            exampleData = {
+                                idCard: "110101199001011234",
+                                name: "张三"
+                            };
+                        } else if (apiName.includes('黑名单') || apiName.includes('blacklist')) {
+                            exampleData = {
+                                idCard: "110101199001011234",
+                                name: "张三"
+                            };
+                        } else if (apiName.includes('年龄') || apiName.includes('age')) {
+                            exampleData = {
+                                idCard: "110101199001011234",
+                                name: "张三"
+                            };
+                        } else if (apiName.includes('手机') || apiName.includes('phone')) {
+                            exampleData = {
+                                phone: "13800138000"
+                            };
+                        } else if (apiName.includes('银行') || apiName.includes('bank')) {
+                            exampleData = {
+                                name: "张三",
+                                idCard: "110101199001011234",
+                                bankCard: "6222021234567890",
+                                phone: "13800138000"
+                            };
+                        } else {
+                            // 默认示例数据
+                            exampleData = {
+                                idCard: "110101199001011234",
+                                name: "张三",
+                                phone: "13800138000"
+                            };
+                        }
+                        
+                        document.getElementById('testData').value = JSON.stringify(exampleData, null, 2);
+                    }
+                })
+                .catch(() => {
+                    // 如果获取配置失败，使用默认示例数据
+                    const defaultData = {
+                        idCard: "110101199001011234",
+                        name: "张三",
+                        phone: "13800138000"
+                    };
+                    document.getElementById('testData').value = JSON.stringify(defaultData, null, 2);
+                });
+            } else {
+                // 默认示例数据
+                const defaultData = {
+                    idCard: "110101199001011234",
+                    name: "张三",
+                    phone: "13800138000"
+                };
+                document.getElementById('testData').value = JSON.stringify(defaultData, null, 2);
+            }
+        }
+
+        // 清空测试数据
+        function clearTestData() {
+            document.getElementById('testData').value = '';
+        }
+        
+        // 重置表单
+        function resetForm() {
+            document.getElementById('apiConfigForm').reset();
+            document.getElementById('apiId').value = '';
+            document.getElementById('timeout').value = '5000';
+        }
+        
+        // 加载示例
+        function loadExample() {
+            document.getElementById('apiName').value = '残疾人身份验证';
+            document.getElementById('apiUrl').value = 'https://api.example.com/disability/verify';
+            document.getElementById('httpMethod').value = 'POST';
+            document.getElementById('requestTemplate').value = JSON.stringify({
+                idCard: '${idCard}',
+                requestTime: '${currentTime}'
+            }, null, 2);
+            document.getElementById('responseField').value = 'data.isDisabled';
+            document.getElementById('successCondition').value = 'response == true';
+            document.getElementById('headers').value = JSON.stringify({
+                'Content-Type': 'application/json'
+            }, null, 2);
+            document.getElementById('timeout').value = '5000';
+            document.getElementById('description').value = '验证身份证是否为残疾人身份';
+        }
+
+        // 打开案例选择弹窗
+        function openCaseModal() {
+            document.getElementById('caseModal').style.display = 'block';
+        }
+
+        // 关闭案例选择弹窗
+        function closeCaseModal() {
+            document.getElementById('caseModal').style.display = 'none';
+        }
+
+        // 加载案例配置
+        function loadCase(caseType) {
+            const baseUrl = 'http://localhost:8080';
+            
+            switch(caseType) {
+                case 'disability':
+                    document.getElementById('apiName').value = '残疾人身份验证';
+                    document.getElementById('apiUrl').value = baseUrl + '/mock-api/disability/verify';
+                    document.getElementById('httpMethod').value = 'POST';
+                    document.getElementById('requestTemplate').value = JSON.stringify({
+                        idCard: '${idCard}',
+                        name: '${name}'
+                    }, null, 2);
+                    document.getElementById('responseField').value = 'data.isDisabled';
+                    document.getElementById('successCondition').value = 'response == true';
+                    document.getElementById('description').value = '验证身份证是否为残疾人身份';
+                    break;
+                    
+                case 'credit':
+                    document.getElementById('apiName').value = '信用评分查询';
+                    document.getElementById('apiUrl').value = baseUrl + '/mock-api/credit/score';
+                    document.getElementById('httpMethod').value = 'POST';
+                    document.getElementById('requestTemplate').value = JSON.stringify({
+                        idCard: '${idCard}',
+                        name: '${name}'
+                    }, null, 2);
+                    document.getElementById('responseField').value = 'data.creditScore';
+                    document.getElementById('successCondition').value = 'response >= 700';
+                    document.getElementById('description').value = '获取信用评分（500-850分）';
+                    break;
+                    
+                case 'blacklist':
+                    document.getElementById('apiName').value = '黑名单检查';
+                    document.getElementById('apiUrl').value = baseUrl + '/mock-api/blacklist/check';
+                    document.getElementById('httpMethod').value = 'POST';
+                    document.getElementById('requestTemplate').value = JSON.stringify({
+                        idCard: '${idCard}',
+                        name: '${name}'
+                    }, null, 2);
+                    document.getElementById('responseField').value = 'data.isBlacklisted';
+                    document.getElementById('successCondition').value = 'response == false';
+                    document.getElementById('description').value = '检查是否在黑名单中';
+                    break;
+                    
+                case 'age':
+                    document.getElementById('apiName').value = '年龄验证';
+                    document.getElementById('apiUrl').value = baseUrl + '/mock-api/age/verify';
+                    document.getElementById('httpMethod').value = 'POST';
+                    document.getElementById('requestTemplate').value = JSON.stringify({
+                        idCard: '${idCard}',
+                        name: '${name}'
+                    }, null, 2);
+                    document.getElementById('responseField').value = 'data.isAdult';
+                    document.getElementById('successCondition').value = 'response == true';
+                    document.getElementById('description').value = '根据身份证号验证年龄';
+                    break;
+                    
+                case 'phone':
+                    document.getElementById('apiName').value = '手机号验证';
+                    document.getElementById('apiUrl').value = baseUrl + '/mock-api/phone/verify';
+                    document.getElementById('httpMethod').value = 'POST';
+                    document.getElementById('requestTemplate').value = JSON.stringify({
+                        phone: '${phone}'
+                    }, null, 2);
+                    document.getElementById('responseField').value = 'data.isValid';
+                    document.getElementById('successCondition').value = 'response == true';
+                    document.getElementById('description').value = '验证手机号格式和运营商';
+                    break;
+                    
+                case 'bank':
+                    document.getElementById('apiName').value = '银行四要素验证';
+                    document.getElementById('apiUrl').value = baseUrl + '/mock-api/bank/verify';
+                    document.getElementById('httpMethod').value = 'POST';
+                    document.getElementById('requestTemplate').value = JSON.stringify({
+                        name: '${name}',
+                        idCard: '${idCard}',
+                        bankCard: '${bankCard}',
+                        phone: '${phone}'
+                    }, null, 2);
+                    document.getElementById('responseField').value = 'data.isVerified';
+                    document.getElementById('successCondition').value = 'response == true';
+                    document.getElementById('description').value = '验证姓名、身份证、银行卡是否匹配';
+                    break;
+            }
+            
+            // 通用设置
+            document.getElementById('headers').value = JSON.stringify({
+                'Content-Type': 'application/json'
+            }, null, 2);
+            document.getElementById('timeout').value = '5000';
+            
+            // 关闭弹窗
+            closeCaseModal();
+        }
+        
+        // 点击弹窗外部关闭
+        window.onclick = function(event) {
+            const testModal = document.getElementById('testModal');
+            const caseModal = document.getElementById('caseModal');
+            
+            if (event.target == testModal) {
+                closeTestModal();
+            }
+            if (event.target == caseModal) {
+                closeCaseModal();
+            }
+        }
+    </script>
+</body>
+</html>
