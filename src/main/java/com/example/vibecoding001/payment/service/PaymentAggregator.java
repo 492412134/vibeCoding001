@@ -1,6 +1,8 @@
 package com.example.vibecoding001.payment.service;
 
 import com.example.vibecoding001.payment.enums.PaymentStatus;
+import com.example.vibecoding001.payment.enums.PolicyType;
+import com.example.vibecoding001.payment.id.SnowflakeIdGenerator;
 import com.example.vibecoding001.payment.model.PaymentMetrics;
 import com.example.vibecoding001.payment.model.PaymentRequest;
 import com.example.vibecoding001.payment.model.PaymentResult;
@@ -9,8 +11,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import jakarta.annotation.PostConstruct;
 import java.util.ArrayList;
 import java.util.List;
@@ -42,6 +42,9 @@ public class PaymentAggregator {
 
     @Autowired
     private PaymentRequestRepository paymentRequestRepository;
+
+    @Autowired
+    private SnowflakeIdGenerator snowflakeIdGenerator;
 
     private final PaymentMetrics metrics = PaymentMetrics.getInstance();
 
@@ -239,7 +242,7 @@ public class PaymentAggregator {
 
     /**
      * 接收单笔支付请求
-     * 流程：先入库（持久化），再入队（快速处理）
+     * 流程：生成雪花ID -> 先入库（持久化），再入队（快速处理）
      */
     public void submitPayment(PaymentRequest request) {
         // 0. 确保请求对象有必要的字段（如果是从API接收的，可能缺少这些字段）
@@ -260,7 +263,21 @@ public class PaymentAggregator {
             request.setOrderType(com.example.vibecoding001.payment.enums.OrderType.NORMAL);
         }
 
-        // 1. 先入库（保证数据不丢失）
+        // 1. 生成雪花ID（如果未设置）
+        if (request.getSnowflakeId() == null) {
+            // 根据订单类型确定政策类型
+            PolicyType policyType = determinePolicyType(request);
+            // 随机生成政策编号 （1-32）
+            long policyCode = ThreadLocalRandom.current().nextLong(1, 32);
+            long snowflakeId = snowflakeIdGenerator.generateId(policyType, policyCode);
+            request.setSnowflakeId(snowflakeId);
+            request.setPolicyType(policyType.name().toLowerCase());
+            request.setPolicyCode(policyCode);
+            logger.info("Generated snowflakeId: {} for request: {}, policyType: {}, policyCode: {}",
+                    snowflakeId, request.getRequestId(), policyType.name(), policyCode);
+        }
+
+        // 2. 先入库（保证数据不丢失）
         // 注意：不使用@Transactional，确保insert立即提交，避免事务延迟导致的问题
         try {
             int inserted = paymentRequestRepository.insert(request);
@@ -268,7 +285,8 @@ public class PaymentAggregator {
                 logger.error("Insert returned 0 rows, requestId: {}", request.getRequestId());
                 throw new RuntimeException("Failed to insert payment request");
             }
-            logger.info("Payment request saved to database: {}, rows={}", request.getRequestId(), inserted);
+            logger.info("Payment request saved to database: {}, snowflakeId={}, rows={}",
+                    request.getRequestId(), request.getSnowflakeId(), inserted);
 
             // 立即验证插入是否成功
             PaymentRequest verify = paymentRequestRepository.findById(request.getRequestId());
@@ -282,7 +300,7 @@ public class PaymentAggregator {
             throw new RuntimeException("Failed to save payment request", e);
         }
 
-        // 2. 再入内存队列（快速处理）
+        // 3. 再入内存队列（快速处理）
         // 根据订单类型放入对应队列
         boolean isVip = request.isVip();
         if (isVip) {
@@ -296,8 +314,34 @@ public class PaymentAggregator {
         secondRequestCount.incrementAndGet();
         metrics.updateQueueSize(getTotalQueueSize());
 
-        logger.debug("Payment request submitted: {}, isVip={}, vipQueue={}, normalQueue={}",
-                request.getRequestId(), isVip, vipQueue.size(), normalQueue.size());
+        logger.debug("Payment request submitted: {}, snowflakeId={}, isVip={}, vipQueue={}, normalQueue={}",
+                request.getRequestId(), request.getSnowflakeId(), isVip, vipQueue.size(), normalQueue.size());
+    }
+
+    /**
+     * 根据订单信息确定政策类型
+     */
+    private PolicyType determinePolicyType(PaymentRequest request) {
+        // VIP订单使用old_man政策类型
+        if (request.isVip()) {
+            return PolicyType.OLD_MAN;
+        }
+        // 普通订单使用common政策类型
+        return PolicyType.COMMON;
+    }
+
+    /**
+     * 从身份证号提取政策编号（取后4位）
+     */
+    private long extractPolicyCode(String idcard) {
+        if (idcard == null || idcard.length() < 4) {
+            return 0L;
+        }
+        try {
+            return Long.parseLong(idcard.substring(idcard.length() - 4));
+        } catch (NumberFormatException e) {
+            return 0L;
+        }
     }
 
     /**
@@ -859,6 +903,8 @@ public class PaymentAggregator {
         
         // 获取线程池的核心线程数
         int corePoolSize = batchProcessor.getCorePoolSize();
+        // 获取活跃线程数（用于监控）
+        @SuppressWarnings("unused")
         int activeCount = batchProcessor.getActiveCount();
         
         // 首先添加threadStatusMap中记录的活跃线程

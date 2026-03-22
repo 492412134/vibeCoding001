@@ -14,8 +14,8 @@ public interface PaymentRequestRepository {
     /**
      * 插入支付请求
      */
-    @Insert("INSERT INTO payment_request (request_id, name, idcard, bankcard, amount, status, create_time, retry_count, order_type) " +
-            "VALUES (#{requestId}, #{name}, #{idcard}, #{bankcard}, #{amount}, #{status}, #{createTime}, #{retryCount}, #{orderType})")
+    @Insert("INSERT INTO payment_request (snowflake_id, request_id, name, idcard, bankcard, amount, status, create_time, retry_count, order_type, policy_type, policy_code) " +
+            "VALUES (#{snowflakeId}, #{requestId}, #{name}, #{idcard}, #{bankcard}, #{amount}, #{status}, #{createTime}, #{retryCount}, #{orderType}, #{policyType}, #{policyCode})")
     int insert(PaymentRequest request);
 
     /**
@@ -76,4 +76,40 @@ public interface PaymentRequestRepository {
     @Update("UPDATE payment_request SET status = #{status}, process_time = #{processTime}, error_msg = #{errorMsg} " +
             "WHERE request_id = #{requestId}")
     int updateStatus(PaymentRequest request);
+
+    /**
+     * 根据雪花ID查询
+     */
+    @Select("SELECT * FROM payment_request WHERE snowflake_id = #{snowflakeId}")
+    PaymentRequest findBySnowflakeId(Long snowflakeId);
+
+    /**
+     * 查询最新的订单（按雪花ID降序）
+     */
+    @Select("SELECT * FROM payment_request ORDER BY snowflake_id DESC LIMIT #{limit}")
+    List<PaymentRequest> findLatestOrders(@Param("limit") int limit);
+
+    /**
+     * 根据政策类型查询
+     */
+    @Select("SELECT * FROM payment_request WHERE policy_type = #{policyType} ORDER BY snowflake_id DESC LIMIT #{limit}")
+    List<PaymentRequest> findByPolicyType(@Param("policyType") String policyType, @Param("limit") int limit);
+
+    /**
+     * 根据政策编号查询
+     */
+    @Select("SELECT * FROM payment_request WHERE policy_code = #{policyCode} ORDER BY snowflake_id DESC LIMIT #{limit}")
+    List<PaymentRequest> findByPolicyCode(@Param("policyCode") Long policyCode, @Param("limit") int limit);
+
+    /**
+     * 根据政策类型和编号查询
+     */
+    @Select("SELECT * FROM payment_request WHERE policy_type = #{policyType} AND policy_code = #{policyCode} ORDER BY snowflake_id DESC LIMIT #{limit}")
+    List<PaymentRequest> findByPolicyTypeAndCode(@Param("policyType") String policyType, @Param("policyCode") Long policyCode, @Param("limit") int limit);
+
+    /**
+     * 根据时间范围查询
+     */
+    @Select("SELECT * FROM payment_request WHERE create_time BETWEEN #{startTime} AND #{endTime} ORDER BY snowflake_id DESC LIMIT #{limit}")
+    List<PaymentRequest> findByTimeRange(@Param("startTime") String startTime, @Param("endTime") String endTime, @Param("limit") int limit);
 }

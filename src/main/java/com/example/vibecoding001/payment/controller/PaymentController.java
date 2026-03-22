@@ -3,6 +3,7 @@ package com.example.vibecoding001.payment.controller;
 import com.example.vibecoding001.payment.enums.PaymentStatus;
 import com.example.vibecoding001.payment.model.PaymentMetrics;
 import com.example.vibecoding001.payment.model.PaymentRequest;
+import com.example.vibecoding001.payment.repository.PaymentRequestRepository;
 import com.example.vibecoding001.payment.service.PaymentAggregator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,6 +29,9 @@ public class PaymentController {
 
     @Autowired
     private PaymentAggregator paymentAggregator;
+
+    @Autowired
+    private PaymentRequestRepository paymentRequestRepository;
 
     private final PaymentMetrics metrics = PaymentMetrics.getInstance();
 
@@ -206,6 +210,100 @@ public class PaymentController {
                         "activeCount", threads.stream().filter(t -> (Boolean) t.get("isActive")).count(),
                         "totalCount", threads.size()
                 )
+        ));
+    }
+
+    /**
+     * 查询最新订单列表
+     */
+    @GetMapping("/orders/latest")
+    public ResponseEntity<Map<String, Object>> getLatestOrders(@RequestParam(defaultValue = "20") int limit) {
+        List<PaymentRequest> orders = paymentRequestRepository.findLatestOrders(Math.min(limit, 100));
+        return ResponseEntity.ok(Map.of(
+                "code", 200,
+                "message", "success",
+                "data", orders
+        ));
+    }
+
+    /**
+     * 根据雪花ID查询订单
+     */
+    @GetMapping("/orders/{snowflakeId}")
+    public ResponseEntity<Map<String, Object>> getOrderBySnowflakeId(@PathVariable Long snowflakeId) {
+        PaymentRequest order = paymentRequestRepository.findBySnowflakeId(snowflakeId);
+        if (order == null) {
+            return ResponseEntity.status(404).body(Map.of(
+                    "code", 404,
+                    "message", "Order not found"
+            ));
+        }
+        return ResponseEntity.ok(Map.of(
+                "code", 200,
+                "message", "success",
+                "data", order
+        ));
+    }
+
+    /**
+     * 根据政策类型查询订单
+     */
+    @GetMapping("/orders/policy-type/{policyType}")
+    public ResponseEntity<Map<String, Object>> getOrdersByPolicyType(
+            @PathVariable String policyType,
+            @RequestParam(defaultValue = "20") int limit) {
+        List<PaymentRequest> orders = paymentRequestRepository.findByPolicyType(policyType, Math.min(limit, 100));
+        return ResponseEntity.ok(Map.of(
+                "code", 200,
+                "message", "success",
+                "data", orders
+        ));
+    }
+
+    /**
+     * 根据政策编号查询订单
+     */
+    @GetMapping("/orders/policy-code/{policyCode}")
+    public ResponseEntity<Map<String, Object>> getOrdersByPolicyCode(
+            @PathVariable Long policyCode,
+            @RequestParam(defaultValue = "20") int limit) {
+        List<PaymentRequest> orders = paymentRequestRepository.findByPolicyCode(policyCode, Math.min(limit, 100));
+        return ResponseEntity.ok(Map.of(
+                "code", 200,
+                "message", "success",
+                "data", orders
+        ));
+    }
+
+    /**
+     * 根据政策类型和编号查询订单
+     */
+    @GetMapping("/orders/policy")
+    public ResponseEntity<Map<String, Object>> getOrdersByPolicyTypeAndCode(
+            @RequestParam String policyType,
+            @RequestParam Long policyCode,
+            @RequestParam(defaultValue = "20") int limit) {
+        List<PaymentRequest> orders = paymentRequestRepository.findByPolicyTypeAndCode(policyType, policyCode, Math.min(limit, 100));
+        return ResponseEntity.ok(Map.of(
+                "code", 200,
+                "message", "success",
+                "data", orders
+        ));
+    }
+
+    /**
+     * 根据时间范围查询订单
+     */
+    @GetMapping("/orders/time-range")
+    public ResponseEntity<Map<String, Object>> getOrdersByTimeRange(
+            @RequestParam String startTime,
+            @RequestParam String endTime,
+            @RequestParam(defaultValue = "20") int limit) {
+        List<PaymentRequest> orders = paymentRequestRepository.findByTimeRange(startTime, endTime, Math.min(limit, 100));
+        return ResponseEntity.ok(Map.of(
+                "code", 200,
+                "message", "success",
+                "data", orders
         ));
     }
 

@@ -10,7 +10,9 @@ import java.util.UUID;
  * 支付请求实体
  */
 public class PaymentRequest {
-    
+
+    private Long id;
+    private Long snowflakeId;
     private String requestId;
     private String name;
     private String idcard;
@@ -18,6 +20,8 @@ public class PaymentRequest {
     private BigDecimal amount;
     private String status;
     private String batchId;
+    private String policyType;
+    private Long policyCode;
     private LocalDateTime createTime;
     private LocalDateTime submitTime;
     private LocalDateTime processTime;
@@ -162,6 +166,38 @@ public class PaymentRequest {
 
     public void setOrderType(OrderType orderType) {
         this.orderType = orderType;
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public Long getSnowflakeId() {
+        return snowflakeId;
+    }
+
+    public void setSnowflakeId(Long snowflakeId) {
+        this.snowflakeId = snowflakeId;
+    }
+
+    public String getPolicyType() {
+        return policyType;
+    }
+
+    public void setPolicyType(String policyType) {
+        this.policyType = policyType;
+    }
+
+    public Long getPolicyCode() {
+        return policyCode;
+    }
+
+    public void setPolicyCode(Long policyCode) {
+        this.policyCode = policyCode;
     }
 
     /**
