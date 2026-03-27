@@ -1,0 +1,14 @@
+{
+  "name": "vibe-web",
+  "version": "1.0.0",
+  "description": "Vibe 前端项目 - 纯静态页面，通过 Vite 代理访问 Gateway",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --port 10990",
+    "build": "vite build",
+    "preview": "vite preview --port 10990"
+  },
+  "devDependencies": {
+    "vite": "^5.0.0"
+  }
+}

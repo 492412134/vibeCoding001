@@ -1,0 +1,49 @@
+# ShardingSphere 5.5.x 分库分表配置 (Docker 环境)
+# 使用 host.docker.internal 访问宿主机 MySQL
+
+dataSources:
+  ds_0:
+    dataSourceClassName: com.zaxxer.hikari.HikariDataSource
+    driverClassName: com.mysql.cj.jdbc.Driver
+    jdbcUrl: jdbc:mysql://host.docker.internal:3306/rule_engine?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    username: root
+    password: sr123456
+    connectionTimeoutMilliseconds: 30000
+    idleTimeoutMilliseconds: 600000
+    maxLifetimeMilliseconds: 1800000
+    maximumPoolSize: 10
+    minimumIdle: 5
+
+rules:
+  - !SINGLE
+    tables:
+      - ds_0.*
+
+  - !SHARDING
+    tables:
+      payment_request:
+        actualDataNodes: ds_0.payment_request_${0..15}
+        tableStrategy:
+          standard:
+            shardingColumn: policy_code
+            shardingAlgorithmName: payment_table_inline
+        keyGenerateStrategy:
+          column: snowflake_id
+          keyGeneratorName: snowflake
+
+    shardingAlgorithms:
+      payment_table_inline:
+        type: INLINE
+        props:
+          algorithm-expression: payment_request_${policy_code % 16}
+
+    keyGenerators:
+      snowflake:
+        type: SNOWFLAKE
+        props:
+          worker-id: 0
+          max-tolerate-time-difference-milliseconds: 10
+
+props:
+  sql-show: true
+  sql-simple: true

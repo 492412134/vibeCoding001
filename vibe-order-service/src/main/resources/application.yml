@@ -1,0 +1,53 @@
+spring:
+  application:
+    name: vibe-order-service
+  
+  cloud:
+    nacos:
+      discovery:
+        server-addr: localhost:8848
+        namespace: public
+        metadata:
+          version: ${SERVICE_VERSION:v1}
+    
+    sentinel:
+      transport:
+        dashboard: localhost:8858
+      eager: true
+
+  datasource:
+    url: jdbc:mysql://localhost:3306/rule_engine?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai
+    username: root
+    password: sr123456
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 5
+
+server:
+  port: 10992
+
+mybatis:
+  mapper-locations: classpath:mapper/*.xml
+  type-aliases-package: com.example.order.entity
+  configuration:
+    map-underscore-to-camel-case: true
+
+# Feign 配置
+feign:
+  client:
+    config:
+      default:
+        connectTimeout: 5000
+        readTimeout: 10000
+  sentinel:
+    enabled: true
+
+logging:
+  level:
+    com.example.order: debug
+    com.example.order.feign: debug
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/order-service.log

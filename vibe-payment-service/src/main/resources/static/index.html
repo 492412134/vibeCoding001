@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>千年🐭妖的AI Coding首页</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            image-rendering: pixelated;
+            image-rendering: -moz-crisp-edges;
+            image-rendering: crisp-edges;
+        }
+        
+        :root {
+            --pixel-bg: #2d1b4e;
+            --pixel-dark: #1a0f2e;
+            --pixel-light: #4a3b69;
+            --pixel-accent: #ff6b9d;
+            --pixel-accent-dark: #c44569;
+            --pixel-gold: #ffd700;
+            --pixel-cyan: #00d9ff;
+            --pixel-green: #00ff88;
+        }
+        
+        body {
+            min-height: 100vh;
+            background-color: var(--pixel-bg);
+            font-family: 'Press Start 2P', cursive;
+            overflow-x: hidden;
+            position: relative;
+            font-size: 16px;
+        }
+        
+        /* 像素背景网格 */
+        .pixel-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(rgba(0,0,0,0.1) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0,0,0,0.1) 1px, transparent 1px);
+            background-size: 20px 20px;
+            pointer-events: none;
+            z-index: 0;
+        }
+        
+        /* 浮动像素粒子 */
+        .pixel-particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+            overflow: hidden;
+        }
+        
+        .particle {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: var(--pixel-cyan);
+            animation: float 8s infinite ease-in-out;
+            box-shadow: 
+                0 0 0 2px var(--pixel-dark),
+                0 0 10px var(--pixel-cyan);
+        }
+        
+        .particle:nth-child(2) { background: var(--pixel-accent); left: 20%; animation-delay: 1s; box-shadow: 0 0 0 2px var(--pixel-dark), 0 0 10px var(--pixel-accent); }
+        .particle:nth-child(3) { background: var(--pixel-gold); left: 40%; animation-delay: 2s; box-shadow: 0 0 0 2px var(--pixel-dark), 0 0 10px var(--pixel-gold); }
+        .particle:nth-child(4) { background: var(--pixel-green); left: 60%; animation-delay: 3s; box-shadow: 0 0 0 2px var(--pixel-dark), 0 0 10px var(--pixel-green); }
+        .particle:nth-child(5) { background: var(--pixel-cyan); left: 80%; animation-delay: 4s; }
+        .particle:nth-child(6) { background: var(--pixel-accent); left: 10%; animation-delay: 5s; box-shadow: 0 0 0 2px var(--pixel-dark), 0 0 10px var(--pixel-accent); }
+        .particle:nth-child(7) { background: var(--pixel-gold); left: 30%; animation-delay: 6s; box-shadow: 0 0 0 2px var(--pixel-dark), 0 0 10px var(--pixel-gold); }
+        .particle:nth-child(8) { background: var(--pixel-green); left: 50%; animation-delay: 7s; box-shadow: 0 0 0 2px var(--pixel-dark), 0 0 10px var(--pixel-green); }
+        
+        @keyframes float {
+            0%, 100% {
+                transform: translateY(100vh) rotate(0deg);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            90% {
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-100px) rotate(360deg);
+                opacity: 0;
+            }
+        }
+        
+        .container {
+            position: relative;
+            z-index: 10;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 30px;
+        }
+        
+        /* 像素风格标题框 */
+        .title-box {
+            background: var(--pixel-dark);
+            border: 4px solid var(--pixel-light);
+            padding: 40px 60px;
+            position: relative;
+            margin-bottom: 50px;
+            box-shadow: 
+                0 0 0 4px var(--pixel-dark),
+                0 0 0 8px var(--pixel-accent),
+                0 0 30px rgba(255, 107, 157, 0.5);
+        }
+        
+        /* 像素角标装饰 */
+        .title-box::before,
+        .title-box::after {
+            content: '';
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            background: var(--pixel-accent);
+        }
+        
+        .title-box::before {
+            top: -8px;
+            left: -8px;
+            box-shadow: 
+                calc(100% + 0px) 0 0 var(--pixel-accent),
+                0 calc(100% + 0px) 0 var(--pixel-accent);
+        }
+        
+        .title-box::after {
+            bottom: -8px;
+            right: -8px;
+            box-shadow: 
+                calc(-100% - 0px) 0 0 var(--pixel-accent),
+                0 calc(-100% - 0px) 0 var(--pixel-accent);
+        }
+        
+        .title {
+            font-size: clamp(32px, 7vw, 56px);
+            color: var(--pixel-gold);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            line-height: 1.5;
+            text-shadow: 
+                4px 4px 0 var(--pixel-dark),
+                -2px -2px 0 var(--pixel-accent);
+            animation: pixelGlow 2s ease-in-out infinite alternate;
+        }
+        
+        @keyframes pixelGlow {
+            from {
+                text-shadow: 
+                    4px 4px 0 var(--pixel-dark),
+                    -2px -2px 0 var(--pixel-accent),
+                    0 0 10px var(--pixel-gold);
+            }
+            to {
+                text-shadow: 
+                    4px 4px 0 var(--pixel-dark),
+                    -2px -2px 0 var(--pixel-accent),
+                    0 0 30px var(--pixel-gold),
+                    0 0 60px var(--pixel-gold);
+            }
+        }
+        
+        .subtitle {
+            font-size: clamp(14px, 2.5vw, 18px);
+            color: var(--pixel-cyan);
+            margin-top: 25px;
+            letter-spacing: 0.3em;
+            text-shadow: 2px 2px 0 var(--pixel-dark);
+            animation: blink 1s step-end infinite;
+        }
+        
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        /* 像素风格按钮 */
+        .btn-container {
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+            align-items: center;
+        }
+        
+        .pixel-btn {
+            display: inline-block;
+            padding: 25px 50px;
+            background: var(--pixel-accent);
+            color: white;
+            text-decoration: none;
+            font-size: clamp(14px, 2vw, 16px);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            position: relative;
+            border: none;
+            cursor: pointer;
+            transition: all 0.1s;
+            box-shadow: 
+                0 6px 0 var(--pixel-accent-dark),
+                0 6px 0 4px var(--pixel-dark),
+                0 0 20px rgba(255, 107, 157, 0.3);
+        }
+        
+        .pixel-btn:hover {
+            transform: translateY(4px);
+            box-shadow: 
+                0 2px 0 var(--pixel-accent-dark),
+                0 2px 0 4px var(--pixel-dark),
+                0 0 40px rgba(255, 107, 157, 0.6);
+            background: var(--pixel-gold);
+        }
+        
+        .pixel-btn:active {
+            transform: translateY(6px);
+            box-shadow: 
+                0 0 0 var(--pixel-accent-dark),
+                0 0 0 4px var(--pixel-dark);
+        }
+        
+        /* 像素装饰边框 */
+        .pixel-border {
+            position: relative;
+            padding: 25px;
+            margin: 25px 0;
+        }
+        
+        .pixel-border::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border: 4px solid var(--pixel-cyan);
+            clip-path: polygon(
+                0 8px, 8px 8px, 8px 0,
+                calc(100% - 8px) 0, calc(100% - 8px) 8px, 100% 8px,
+                100% calc(100% - 8px), calc(100% - 8px) calc(100% - 8px), calc(100% - 8px) 100%,
+                8px 100%, 8px calc(100% - 8px), 0 calc(100% - 8px)
+            );
+        }
+        
+        /* 像素角色/图标 */
+        .pixel-icon {
+            font-size: 64px;
+            margin-bottom: 30px;
+            animation: bounce 0.6s ease-in-out infinite alternate;
+            filter: drop-shadow(4px 4px 0 var(--pixel-dark));
+        }
+        
+        @keyframes bounce {
+            from { transform: translateY(0); }
+            to { transform: translateY(-10px); }
+        }
+        
+        /* 底部装饰 */
+        .footer-decoration {
+            position: fixed;
+            bottom: 25px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 14px;
+            color: var(--pixel-light);
+            text-align: center;
+            z-index: 10;
+        }
+        
+        .footer-decoration span {
+            display: inline-block;
+            animation: wave 1s ease-in-out infinite;
+        }
+        
+        .footer-decoration span:nth-child(2) { animation-delay: 0.1s; }
+        .footer-decoration span:nth-child(3) { animation-delay: 0.2s; }
+        .footer-decoration span:nth-child(4) { animation-delay: 0.3s; }
+        .footer-decoration span:nth-child(5) { animation-delay: 0.4s; }
+        
+        @keyframes wave {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+        
+        /* 响应式 */
+        @media (max-width: 768px) {
+            .title-box {
+                padding: 25px 40px;
+            }
+            
+            .pixel-btn {
+                padding: 20px 40px;
+                width: 320px;
+                text-align: center;
+                font-size: 14px;
+            }
+            
+            .btn-container {
+                width: 100%;
+            }
+
+            body {
+                font-size: 14px;
+            }
+        }
+        
+        /* 扫描线效果 */
+        .scanlines {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                to bottom,
+                rgba(255,255,255,0),
+                rgba(255,255,255,0) 50%,
+                rgba(0,0,0,0.1) 50%,
+                rgba(0,0,0,0.1)
+            );
+            background-size: 100% 4px;
+            pointer-events: none;
+            z-index: 100;
+            opacity: 0.3;
+        }
+    </style>
+</head>
+<body>
+    <div class="pixel-bg"></div>
+    <div class="scanlines"></div>
+    
+    <div class="pixel-particles">
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+    </div>
+    
+    <div class="container">
+        <div class="pixel-icon">🐭</div>
+        
+        <div class="title-box">
+            <h1 class="title">千年鼠妖</h1>
+            <p class="subtitle">AI CODING_</p>
+        </div>
+        
+        <div class="btn-container">
+            <a href="/rule-engine.html" class="pixel-btn">⚙️ 规则引擎管理</a>
+            <a href="/payment-demo.html" class="pixel-btn">💰 支付系统压测</a>
+            <a href="/snowflake-demo.html" class="pixel-btn">❄️ 雪花算法演示</a>
+            <a href="/orders-demo.html" class="pixel-btn">📋 订单查询系统</a>
+            <a href="/external-api.html" class="pixel-btn">🌐 外部API测试</a>
+        </div>
+        
+        <!-- 分布式架构信息展示 -->
+        <div class="distributed-info" style="margin-top: 30px; padding: 20px; background: rgba(0,0,0,0.3); border: 2px solid var(--pixel-cyan); text-align: center;">
+            <h3 style="color: var(--pixel-cyan); font-size: 12px; margin-bottom: 10px;">🚀 分布式微服务架构</h3>
+            <p style="color: #888; font-size: 10px; line-height: 1.8;">
+                Gateway: <span style="color: var(--pixel-green);">:8081</span> | 
+                支付服务: <span style="color: var(--pixel-accent);">:10991</span> | 
+                订单服务: <span style="color: var(--pixel-gold);">:10992</span>
+            </p>
+            <p style="color: #666; font-size: 9px; margin-top: 8px;">
+                所有请求通过 Gateway 负载均衡分发
+            </p>
+        </div>
+    </div>
+    
+    <div class="footer-decoration">
+        <span>◆</span>
+        <span>◆</span>
+        <span>◆</span>
+        <span>◆</span>
+        <span>◆</span>
+    </div>
+</body>
+</html>

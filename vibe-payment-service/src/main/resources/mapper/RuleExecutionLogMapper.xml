@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.payment.mapper.RuleExecutionLogMapper">
+
+    <resultMap id="BaseResultMap" type="com.example.payment.entity.RuleExecutionLog">
+        <id column="id" property="id" jdbcType="BIGINT"/>
+        <result column="rule_id" property="ruleId" jdbcType="VARCHAR"/>
+        <result column="rule_name" property="ruleName" jdbcType="VARCHAR"/>
+        <result column="condition" property="condition" jdbcType="VARCHAR"/>
+        <result column="action" property="action" jdbcType="VARCHAR"/>
+        <result column="input_data" property="inputData" jdbcType="VARCHAR"/>
+        <result column="output_data" property="outputData" jdbcType="VARCHAR"/>
+        <result column="executed" property="executed" jdbcType="BOOLEAN"/>
+        <result column="execution_time" property="executionTime" jdbcType="BIGINT"/>
+        <result column="error_message" property="errorMessage" jdbcType="VARCHAR"/>
+        <result column="created_at" property="createdAt" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, rule_id, rule_name, `condition`, action, input_data, output_data, executed, execution_time, error_message, created_at
+    </sql>
+
+    <insert id="insert" parameterType="com.example.payment.entity.RuleExecutionLog" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO rule_execution_log (rule_id, rule_name, `condition`, action, input_data, output_data, executed, execution_time, error_message)
+        VALUES (#{ruleId}, #{ruleName}, #{condition}, #{action}, #{inputData}, #{outputData}, #{executed}, #{executionTime}, #{errorMessage})
+    </insert>
+
+    <select id="selectById" parameterType="java.lang.Long" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM rule_execution_log
+        WHERE id = #{id}
+    </select>
+
+    <select id="selectAll" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM rule_execution_log
+        ORDER BY created_at DESC
+    </select>
+
+    <select id="selectByRuleId" parameterType="java.lang.String" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM rule_execution_log
+        WHERE rule_id = #{ruleId}
+        ORDER BY created_at DESC
+    </select>
+
+    <select id="selectByTimeRange" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM rule_execution_log
+        WHERE created_at BETWEEN #{startTime} AND #{endTime}
+        ORDER BY created_at DESC
+    </select>
+
+    <select id="selectRecent" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM rule_execution_log
+        ORDER BY created_at DESC
+        LIMIT #{limit}
+    </select>
+
+    <select id="countByRuleId" parameterType="java.lang.String" resultType="java.lang.Long">
+        SELECT COUNT(*)
+        FROM rule_execution_log
+        WHERE rule_id = #{ruleId}
+    </select>
+
+    <select id="calculateSuccessRate" parameterType="java.lang.String" resultType="java.lang.Double">
+        SELECT 
+            CASE 
+                WHEN COUNT(*) = 0 THEN 0
+                ELSE (SUM(CASE WHEN executed = 1 THEN 1 ELSE 0 END) * 100.0 / COUNT(*))
+            END
+        FROM rule_execution_log
+        WHERE rule_id = #{ruleId}
+    </select>
+
+    <delete id="deleteBefore">
+        DELETE FROM rule_execution_log
+        WHERE created_at &lt; #{beforeTime}
+    </delete>
+
+</mapper>

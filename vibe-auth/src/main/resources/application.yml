@@ -1,0 +1,43 @@
+server:
+  port: 11000
+
+spring:
+  application:
+    name: vibe-auth
+
+  cloud:
+    nacos:
+      discovery:
+        server-addr: localhost:8848
+        namespace: public
+        metadata:
+          version: ${SERVICE_VERSION:v1}
+
+  datasource:
+    url: jdbc:mysql://localhost:3306/vibe_auth?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: root
+    password: sr123456
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      database: 0
+      timeout: 2000ms
+
+mybatis:
+  mapper-locations: classpath:mapper/*.xml
+  type-aliases-package: com.example.auth.entity
+  configuration:
+    map-underscore-to-camel-case: true
+
+# JWT 配置
+jwt:
+  secret: VibeCodingSecretKey2024ForJWTTokenGenerationAndValidation
+  expiration: 86400000  # 24小时，单位毫秒
+  refresh-expiration: 604800000  # 7天，单位毫秒
+
+logging:
+  level:
+    com.example.auth: debug

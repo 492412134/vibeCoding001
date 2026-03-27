@@ -1,0 +1,36 @@
+# 灰度发布规则配置
+# 在Nacos控制台中创建配置：
+# 配置Data ID: gray-rules.yaml
+# 配置Group: DEFAULT_GROUP
+# 配置格式: YAML
+
+gray:
+  rules:
+    # 支付服务灰度规则
+    - service: vibe-payment-service
+      enabled: true
+      weight: 30  # 30%流量进入灰度版本
+      conditions:
+        # 用户ID条件
+        - type: user_id
+          operator: in
+          values: ["1001", "1002", "1003"]
+        # IP地址条件
+        - type: ip
+          operator: regex
+          values: ["192\.168\.1\..*"]
+      version: v2
+    
+    # 订单服务灰度规则
+    - service: vibe-order-service
+      enabled: false
+      weight: 0
+      conditions: []
+      version: v1
+    
+    # 认证服务灰度规则
+    - service: vibe-auth
+      enabled: false
+      weight: 0
+      conditions: []
+      version: v1

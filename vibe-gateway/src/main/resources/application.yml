@@ -1,0 +1,158 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: vibe-gateway
+
+  # 禁用外部配置导入，使用本地配置
+  config:
+    import: []
+
+  cloud:
+    nacos:
+      discovery:
+        server-addr: localhost:8848
+        namespace: public
+      config:
+        enabled: false
+
+    gateway:
+      discovery:
+        locator:
+          enabled: false  # 禁用自动路由，使用手动配置的路由
+
+      routes:
+        # ============================================
+        # 认证服务路由
+        # ============================================
+        - id: vibe-auth-service
+          uri: lb://vibe-auth
+          predicates:
+            - Path=/api/auth/**
+          filters:
+            - StripPrefix=1
+
+        # ============================================
+        # 支付服务 - API路由 (需要认证)
+        # ============================================
+        - id: vibe-payment-service-api
+          uri: lb://vibe-payment-service
+          predicates:
+            - Path=/api/payment/**
+          filters:
+            - StripPrefix=0
+            - GrayRoute  # 暂时禁用灰度路由
+
+        # ============================================
+        # 规则引擎路由 (公开访问，不需要认证)
+        # ============================================
+        - id: vibe-payment-service-rules
+          uri: lb://vibe-payment-service
+          predicates:
+            - Path=/api/rule/**
+          filters:
+            - StripPrefix=0
+
+        - id: vibe-payment-service-snowflake
+          uri: lb://vibe-payment-service
+          predicates:
+            - Path=/api/snowflake/**
+          filters:
+            - StripPrefix=0
+
+        - id: vibe-payment-service-external
+          uri: lb://vibe-payment-service
+          predicates:
+            - Path=/api/external/**
+          filters:
+            - StripPrefix=0
+
+        - id: vibe-payment-service-mock
+          uri: lb://vibe-payment-service
+          predicates:
+            - Path=/api/mock/**
+          filters:
+            - StripPrefix=0
+
+        # ============================================
+        # 订单服务路由 (需要认证)
+        # ============================================
+        - id: vibe-order-service
+          uri: lb://vibe-order-service
+          predicates:
+            - Path=/api/order/**
+          filters:
+            - StripPrefix=0
+
+        # ============================================
+        # 负载均衡演示路由
+        # ============================================
+        - id: vibe-payment-service-loadbalance
+          uri: lb://vibe-payment-service
+          predicates:
+            - Path=/lb/**
+          filters:
+            - StripPrefix=1
+
+      # 全局 CORS 配置
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowedOrigins: "*"
+            allowedMethods: "*"
+            allowedHeaders: "*"
+            allowCredentials: false
+
+      # 全局过滤器
+      default-filters:
+        - AddResponseHeader=X-Gateway-Service, vibe-gateway
+
+  # Redis 配置
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      database: 0
+      timeout: 2000ms
+
+# JWT 配置
+jwt:
+  secret: VibeCodingSecretKey2024ForJWTTokenGenerationAndValidation
+
+# 网关认证配置
+gateway:
+  auth:
+    # 白名单路径 - 不需要认证
+    white-list:
+      - /api/auth/**
+      - /api/rule/**
+      - /actuator/**
+      - /
+      - /index.html
+      - "/*.html"
+      - "/*.js"
+      - "/*.css"
+      - "/**/*.js"
+      - "/**/*.css"
+      - "/**/*.png"
+      - "/**/*.jpg"
+      - "/**/*.svg"
+      - "/**/*.ico"
+
+# Sentinel 配置
+spring.cloud.sentinel:
+  transport:
+    dashboard: localhost:8858
+  eager: true
+  filter:
+    enabled: true
+
+# 负载均衡配置
+spring.cloud.loadbalancer:
+  ribbon:
+    enabled: false
+
+logging:
+  level:
+    com.example.gateway.filter: debug

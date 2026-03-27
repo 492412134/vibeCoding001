@@ -1,0 +1,52 @@
+spring:
+  application:
+    name: vibe-payment-service
+  
+  cloud:
+    nacos:
+      discovery:
+        server-addr: localhost:8848
+        namespace: public
+        metadata:
+          version: ${SERVICE_VERSION:v1}
+    
+    sentinel:
+      transport:
+        dashboard: localhost:8858
+      eager: true
+
+  datasource:
+    url: jdbc:shardingsphere:classpath:sharding-config.yaml
+    driver-class-name: org.apache.shardingsphere.driver.ShardingSphereDriver
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      database: 0
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+
+server:
+  port: 10991
+
+mybatis:
+  mapper-locations: classpath:mapper/*.xml
+  type-aliases-package: com.example.payment.entity
+  configuration:
+    map-underscore-to-camel-case: true
+
+logging:
+  level:
+    com.example.payment.mapper: debug
+    com.example.payment.repository: debug
+    org.apache.ibatis: debug
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/payment-service.log

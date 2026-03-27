@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>支付系统压力测试 - 千年🐭妖的AI Coding</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" />
+    <link rel="stylesheet" href="css/payment-demo.css"/>
+</head>
+<body>
+    <div class="pixel-bg"></div>
+    <div class="scanlines"></div>
+
+    <div class="container">
+        <a href="/index.html" class="back-link">← 返回首页</a>
+        
+        <div class="title-box">
+            <h1>🚀 支付系统压力测试平台</h1>
+        </div>
+
+        <div class="main-grid">
+            <!-- 左侧：测试配置 -->
+            <div class="card">
+                <h2>⚙️ 测试配置</h2>
+                
+                <div class="form-group">
+                    <label for="rps">每秒请求数 (RPS)</label>
+                    <input type="number" id="rps" value="600" min="100" max="5000" step="100">
+                    <p class="info-text">目标：每秒发送的支付请求数量，建议范围：100-1000（最低100，步长100）</p>
+                </div>
+
+                <div class="form-group">
+                    <label for="duration">持续时间 (秒)</label>
+                    <input type="number" id="duration" value="60" min="1" max="300">
+                    <p class="info-text">测试运行的总时长，最大300秒（5分钟）</p>
+                </div>
+
+                <div class="form-group">
+                    <label for="batchSize">批量聚合阈值</label>
+                    <input type="number" id="batchSize" value="10" min="1" max="100" disabled>
+                    <p class="info-text">每 <span class="highlight">10</span> 笔或 <span class="highlight">1秒</span> 触发一次批量支付</p>
+                </div>
+
+                <div class="form-group">
+                    <label for="vipRatio">VIP订单比例 (%)</label>
+                    <input type="number" id="vipRatio" value="20" min="0" max="100" step="5">
+                    <p class="info-text">VIP订单将优先处理，范围：0-100%</p>
+                </div>
+
+                <div class="control-buttons">
+                    <button class="btn btn-primary" id="startBtn" onclick="startTest()">开始测试</button>
+                    <button class="btn btn-danger" id="stopBtn" onclick="stopTest()" disabled>停止测试</button>
+                    <button class="btn btn-secondary" onclick="resetMetrics()">重置数据</button>
+                </div>
+
+                <div class="progress-bar" id="progressBar" style="display: none;">
+                    <div class="progress-fill" id="progressFill" style="width: 0%">0%</div>
+                </div>
+            </div>
+
+            <!-- 右侧：实时指标 -->
+            <div class="card">
+                <h2>📊 实时指标监控</h2>
+
+                <div class="metrics-grid" style="margin-top: 15px;">
+                    <div class="metric-card">
+                        <div class="metric-value" id="currentQps">0</div>
+                        <div class="metric-label">当前 QPS</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="queueSize">0</div>
+                        <div class="metric-label">队列长度</div>
+                    </div>
+                    <div class="metric-card vip-queue">
+                        <div class="metric-value" id="vipQueueSize">0</div>
+                        <div class="metric-label">VIP队列</div>
+                    </div>
+                    <div class="metric-card normal-queue">
+                        <div class="metric-value" id="normalQueueSize">0</div>
+                        <div class="metric-label">普通队列</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="totalRequests">0</div>
+                        <div class="metric-label">总请求数</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="successRate">0%</div>
+                        <div class="metric-label">成功率</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="totalBatches">0</div>
+                        <div class="metric-label">批量次数</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="timeoutRequests">0</div>
+                        <div class="metric-label">超时次数</div>
+                    </div>
+                </div>
+
+                <!-- 线程池状态监控 -->
+                <div class="thread-pool-section">
+                    <div class="thread-pool-header">
+                        <h3>🧵 线程池状态</h3>
+                        <div class="thread-stats">
+                            <span style="color: var(--pixel-green);">🔥 处理中: <strong id="processingThreadCount">0</strong></span>
+                            <span style="color: #888;">💤 空闲: <strong id="idleThreadCount2">0</strong></span>
+                            <span style="color: #666;">📊 总计: <strong id="totalThreadCount2">0</strong></span>
+                            <span style="color: var(--pixel-red);">📦 线程池队列: <strong id="threadPoolQueueInfo">0/0</strong></span>
+                        </div>
+                    </div>
+                    <div class="thread-container">
+                        <div class="thread-box" id="activeThreadsContainer">
+                            <!-- 活跃线程标签将动态插入这里 -->
+                        </div>
+                        <div class="thread-box" id="idleThreadsContainer">
+                            <!-- 空闲线程标签将动态插入这里 -->
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 15px; text-align: center;">
+                    <span id="testStatus" class="status-stopped">● 测试未开始</span>
+                </div>
+                
+                <!-- 测试时间信息 -->
+                <div style="margin-top: 15px; padding: 15px; background: var(--pixel-bg); border: 2px solid var(--pixel-light); text-align: center;">
+                    <div id="startTimeDisplay" style="font-size: 10px; color: var(--pixel-cyan); margin-bottom: 5px;"></div>
+                    <div id="endTimeDisplay" style="font-size: 10px; color: var(--pixel-green); margin-bottom: 5px;"></div>
+                    <div id="durationDisplay" style="font-size: 12px; color: var(--pixel-gold); font-weight: bold;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 性能瓶颈分析 -->
+        <div class="card">
+            <h2>🔍 性能瓶颈分析</h2>
+            <div class="metrics-grid metrics-grid-small" style="margin-top: 15px;">
+                <div class="metric-card metric-card-small">
+                    <div class="metric-value metric-value-small" id="avgProcessTime">0ms</div>
+                    <div class="metric-label metric-label-small">平均处理耗时</div>
+                </div>
+                <div class="metric-card metric-card-small">
+                    <div class="metric-value metric-value-small" id="maxProcessTime">0ms</div>
+                    <div class="metric-label metric-label-small">最大处理耗时</div>
+                </div>
+                <div class="metric-card metric-card-small">
+                    <div class="metric-value metric-value-small" id="minProcessTime">0ms</div>
+                    <div class="metric-label metric-label-small">最小处理耗时</div>
+                </div>
+                <div class="metric-card metric-card-small">
+                    <div class="metric-value metric-value-small" id="avgThirdPartyTime">0ms</div>
+                    <div class="metric-label metric-label-small">第三方接口平均耗时</div>
+                </div>
+                <div class="metric-card metric-card-small">
+                    <div class="metric-value metric-value-small" id="thirdPartyTimeoutRate">0%</div>
+                    <div class="metric-label metric-label-small">第三方接口超时率</div>
+                </div>
+                <div class="metric-card metric-card-small">
+                    <div class="metric-value metric-value-small" id="thirdPartyTps">0</div>
+                    <div class="metric-label metric-label-small">第三方接口TPS</div>
+                </div>
+                <div class="metric-card metric-card-small">
+                    <div class="metric-value metric-value-small" id="avgQueueWaitTime">0ms</div>
+                    <div class="metric-label metric-label-small">平均队列等待时间</div>
+                </div>
+                <div class="metric-card metric-card-small">
+                    <div class="metric-value metric-value-small" id="processThroughput">0</div>
+                    <div class="metric-label metric-label-small">处理吞吐量(笔/秒)</div>
+                </div>
+                <div class="metric-card metric-card-small">
+                    <div class="metric-value metric-value-small" id="activeThreads">0</div>
+                    <div class="metric-label metric-label-small">活跃线程数</div>
+                </div>
+                <div class="metric-card metric-card-small">
+                    <div class="metric-value metric-value-small" id="waitingTasks">0</div>
+                    <div class="metric-label metric-label-small">等待任务数</div>
+                </div>
+            </div>
+
+            <div class="guide-box">
+                <h3>📈 瓶颈分析指南</h3>
+                <ul>
+                    <li><strong>队列等待时间过长</strong>：说明请求堆积，可能需要增加批量处理线程数或降低聚合阈值</li>
+                    <li><strong>第三方接口耗时高</strong>：瓶颈在外部系统，考虑增加超时重试机制或联系第三方优化</li>
+                    <li><strong>处理吞吐量低于QPS</strong>：系统处理能力不足，需要优化代码或增加资源</li>
+                    <li><strong>活跃线程数接近最大值</strong>：线程池可能成为瓶颈，考虑调整线程池大小</li>
+                    <li><strong>第三方接口超时率高</strong>：网络不稳定或第三方系统负载高，需要降级处理</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- 底部：图表和日志 -->
+        <div class="card">
+            <h2>📈 QPS 实时监控</h2>
+            <div class="chart-container">
+                <canvas id="qpsChart"></canvas>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>📝 运行日志</h2>
+            <div class="log-container" id="logContainer">
+                <div class="log-entry">
+                    <span class="log-time">[系统]</span> 等待测试开始...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="js/payment-config.js"></script>
+    <script>
+        // 全局变量
+        let isRunning = false;
+        let testInterval = null;
+        let statusInterval = null;
+        let startTime = null;
+        let requestCount = 0;
+        let qpsData = [];
+        let timeLabels = [];
+        let chart = null;
+        
+        // 测试完成统计
+        let testStopTime = null;
+        let processingCompleteTime = null;
+        let isCheckingCompletion = false;
+
+        // 初始化图表
+        function initChart() {
+            const ctx = document.getElementById('qpsChart').getContext('2d');
+            
+            // 像素风格图表配置
+            Chart.defaults.font.family = "'Press Start 2P', cursive";
+            Chart.defaults.font.size = 10;
+            Chart.defaults.color = '#888';
+            
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: timeLabels,
+                    datasets: [{
+                        label: 'QPS',
+                        data: qpsData,
+                        borderColor: '#ff6b9d',
+                        backgroundColor: 'rgba(255, 107, 157, 0.2)',
+                        borderWidth: 3,
+                        tension: 0,
+                        fill: true,
+                        pointBackgroundColor: '#ffd700',
+                        pointBorderColor: '#ff6b9d',
+                        pointBorderWidth: 2,
+                        pointRadius: 4,
+                        pointHoverRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: '#00d9ff',
+                                font: { size: 10 }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: '#4a3b69',
+                                borderColor: '#4a3b69'
+                            },
+                            ticks: { color: '#888' },
+                            title: {
+                                display: true,
+                                text: '请求数/秒',
+                                color: '#00d9ff'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                color: '#4a3b69',
+                                borderColor: '#4a3b69'
+                            },
+                            ticks: { color: '#888' },
+                            title: {
+                                display: true,
+                                text: '时间(秒)',
+                                color: '#00d9ff'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // 生成随机支付数据
+        function generatePaymentData() {
+            const names = ['张三', '李四', '王五', '赵六', '钱七', '孙八', '周九', '吴十'];
+            const randomName = names[Math.floor(Math.random() * names.length)] + Math.floor(Math.random() * 100);
+
+            // 生成18位身份证号
+            const prefix = '330101';
+            const year = 1980 + Math.floor(Math.random() * 30);
+            const month = String(Math.floor(Math.random() * 12) + 1).padStart(2, '0');
+            const day = String(Math.floor(Math.random() * 28) + 1).padStart(2, '0');
+            const random4 = String(Math.floor(Math.random() * 10000)).padStart(4, '0');
+            const idCard = prefix + year + month + day + random4;
+            
+            // 计算校验码
+            const weights = [7,9,10,5,8,4,2,1,6,3,7,9,10,5,8,4,2];
+            const checkCodes = ['1','0','X','9','8','7','6','5','4','3','2'];
+            let sum = 0;
+            for(let i = 0; i < 17; i++) {
+                sum += parseInt(idCard[i]) * weights[i];
+            }
+            const checkCode = checkCodes[sum % 11];
+            const fullIdCard = idCard + checkCode;
+
+            // 生成银行卡号
+            const bankPrefix = ['622202', '622848', '621700', '622262'];
+            const prefix2 = bankPrefix[Math.floor(Math.random() * bankPrefix.length)];
+            const cardSuffix = String(Math.floor(Math.random() * 10000000000)).padStart(10, '0');
+            const bankCard = prefix2 + cardSuffix;
+
+            // 随机金额 1-1000元
+            const amount = (Math.random() * 999 + 1).toFixed(2);
+
+            // VIP比例
+            const vipRatio = parseInt(document.getElementById('vipRatio').value) || 20;
+            const isVip = Math.random() * 100 < vipRatio;
+
+            return {
+                name: randomName,
+                idCard: fullIdCard,
+                bankCard: bankCard,
+                amount: parseFloat(amount),
+                orderType: isVip ? 'VIP' : 'NORMAL'
+            };
+        }
+
+        // 发送单个支付请求
+        async function sendPaymentRequest() {
+            try {
+                const paymentData = generatePaymentData();
+                const requestBody = {
+                    requestId: 'REQ' + Date.now() + Math.random().toString(36).substr(2, 9),
+                    name: paymentData.name,
+                    idCard: paymentData.idCard,
+                    bankCard: paymentData.bankCard,
+                    amount: paymentData.amount,
+                    orderType: paymentData.orderType,
+                    timestamp: new Date().toISOString()
+                };
+                
+                const response = await fetch(PaymentConfig.getApiUrl('payment', '/single'), {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const result = await response.json();
+                requestCount++;
+                
+                if (result.code === 200) {
+                    addLog(`✅ 支付请求已接受: ${paymentData.name} - ¥${paymentData.amount}`, 'success');
+                } else {
+                    addLog(`❌ 支付失败: ${paymentData.name} - ${result.message}`, 'error');
+                }
+
+                return result;
+            } catch (error) {
+                requestCount++;
+                addLog(`💥 请求异常: ${error.message}`, 'error');
+                return { code: 500, message: error.message };
+            }
+        }
+
+        // 开始测试
+        async function startTest() {
+            if (isRunning) return;
+
+            const rps = parseInt(document.getElementById('rps').value);
+            const duration = parseInt(document.getElementById('duration').value);
+
+            if (!rps || rps < 100 || !duration || duration < 1) {
+                alert('请设置有效的RPS(≥100)和持续时间(≥1秒)');
+                return;
+            }
+
+            isRunning = true;
+            startTime = Date.now();
+            requestCount = 0;
+            qpsData = [];
+            timeLabels = [];
+            
+            // 重置测试完成统计变量
+            testStopTime = null;
+            processingCompleteTime = null;
+            isCheckingCompletion = false;
+
+            // 显示开始时间
+            const startDate = new Date(startTime);
+            document.getElementById('startTimeDisplay').textContent = `开始时间: ${startDate.toLocaleString()}`;
+            document.getElementById('endTimeDisplay').textContent = '';
+            document.getElementById('durationDisplay').textContent = '';
+
+            // 更新UI状态
+            document.getElementById('startBtn').disabled = true;
+            document.getElementById('stopBtn').disabled = false;
+            document.getElementById('testStatus').textContent = '● 测试中...';
+            document.getElementById('testStatus').className = 'status-running';
+            document.getElementById('progressBar').style.display = 'block';
+
+            // 清空之前的日志
+            document.getElementById('logContainer').innerHTML = '';
+            addLog(`🚀 测试开始 - RPS: ${rps}, 持续时间: ${duration}秒`, 'info');
+            addLog(`⏰ 开始时间: ${startDate.toLocaleString()}`, 'info');
+
+            // 初始化图表
+            if (chart) {
+                chart.destroy();
+            }
+            initChart();
+
+            // 启动支付请求发送
+            // 使用批量并发发送来达到高RPS
+            // 每100ms发送一批请求，每批发送 rps/10 个请求
+            const batchIntervalMs = 100; // 每100ms发送一批
+            const requestsPerBatch = Math.ceil(rps / 10); // 每批请求数
+            let lastSecondCount = 0;
+            
+            addLog(`⚙️ 发送配置: 每${batchIntervalMs}ms发送${requestsPerBatch}个请求，目标RPS: ${rps}`, 'info');
+
+            testInterval = setInterval(async () => {
+                if (!isRunning) return;
+
+                const elapsed = (Date.now() - startTime) / 1000;
+                
+                // 检查是否达到持续时间
+                if (elapsed >= duration) {
+                    stopTest();
+                    return;
+                }
+
+                // 更新进度条
+                const progress = Math.min((elapsed / duration) * 100, 100);
+                document.getElementById('progressFill').style.width = progress + '%';
+                document.getElementById('progressFill').textContent = Math.round(progress) + '%';
+
+                // 并发发送一批请求
+                const batchPromises = [];
+                for (let i = 0; i < requestsPerBatch; i++) {
+                    batchPromises.push(sendPaymentRequest());
+                }
+                
+                // 等待本批请求完成（不阻塞下一批）
+                Promise.all(batchPromises).catch(err => {
+                    console.error('批量请求错误:', err);
+                });
+
+                // 每秒更新一次QPS数据
+                const currentSecond = Math.floor(elapsed);
+                if (currentSecond > timeLabels.length - 1) {
+                    const currentSecondCount = requestCount - lastSecondCount;
+                    qpsData.push(currentSecondCount);
+                    timeLabels.push(currentSecond + 's');
+                    lastSecondCount = requestCount;
+                    
+                    // 限制数据点数量
+                    if (qpsData.length > 60) {
+                        qpsData.shift();
+                        timeLabels.shift();
+                    }
+                    
+                    chart.update('none');
+                }
+
+            }, batchIntervalMs);
+
+            // 启动状态监控
+            statusInterval = setInterval(updateMetrics, 1000);
+            updateMetrics(); // 立即更新一次
+        }
+
+        // 停止测试
+        function stopTest() {
+            if (!isRunning) return;
+
+            isRunning = false;
+            testStopTime = Date.now();
+
+            if (testInterval) {
+                clearInterval(testInterval);
+                testInterval = null;
+            }
+
+            // 注意：不停止statusInterval，让页面继续自动刷新数据
+            // 这样用户可以随时看到最新的线程池状态
+
+            // 更新UI状态
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('stopBtn').disabled = true;
+            document.getElementById('testStatus').textContent = '● 测试已停止，等待任务处理完成...';
+            document.getElementById('testStatus').className = 'status-running';
+
+            addLog(`🏁 测试结束 - 总请求数: ${requestCount}`, 'info');
+            addLog('⏳ 正在等待所有任务处理完成...', 'info');
+            
+            // 开始监控任务完成状态
+            isCheckingCompletion = true;
+            processingCompleteTime = null;
+        }
+
+        // 更新指标
+        async function updateMetrics() {
+            try {
+                // 同时获取状态指标和线程状态 - 本地调用
+                const [statusResponse, threadsResponse] = await Promise.all([
+                    fetch(PaymentConfig.getApiUrl('payment', '/status')),
+                    fetch(PaymentConfig.getApiUrl('payment', '/threads'))
+                ]);
+                
+                if (!statusResponse.ok) return;
+
+                const statusResult = await statusResponse.json();
+                const metrics = statusResult.data || {};
+
+                // 更新基本指标
+                document.getElementById('currentQps').textContent = metrics.currentQps || 0;
+                document.getElementById('queueSize').textContent = metrics.queueSize || 0;
+                document.getElementById('vipQueueSize').textContent = metrics.vipQueueSize || 0;
+                document.getElementById('normalQueueSize').textContent = metrics.normalQueueSize || 0;
+                document.getElementById('totalRequests').textContent = metrics.totalRequests || 0;
+                document.getElementById('successRate').textContent = (metrics.successRate || 0) + '%';
+                document.getElementById('totalBatches').textContent = metrics.totalBatches || 0;
+                document.getElementById('timeoutRequests').textContent = metrics.timeoutRequests || 0;
+
+                // 更新性能指标
+                document.getElementById('avgProcessTime').textContent = (metrics.avgProcessTime || 0) + 'ms';
+                document.getElementById('maxProcessTime').textContent = (metrics.maxProcessTime || 0) + 'ms';
+                document.getElementById('minProcessTime').textContent = (metrics.minProcessTime || 0) + 'ms';
+                document.getElementById('avgThirdPartyTime').textContent = (metrics.avgThirdPartyTime || 0) + 'ms';
+                document.getElementById('thirdPartyTimeoutRate').textContent = (metrics.thirdPartyTimeoutRate || 0) + '%';
+                document.getElementById('thirdPartyTps').textContent = metrics.thirdPartyTps || 0;
+                document.getElementById('avgQueueWaitTime').textContent = (metrics.avgQueueWaitTime || 0) + 'ms';
+                document.getElementById('processThroughput').textContent = metrics.processThroughput || 0;
+                document.getElementById('activeThreads').textContent = metrics.activeThreads || 0;
+                document.getElementById('waitingTasks').textContent = metrics.waitingTasks || 0;
+
+                // 获取线程状态数据
+                let threadData = { threads: [], activeCount: 0, totalCount: 0 };
+                if (threadsResponse.ok) {
+                    const threadsResult = await threadsResponse.json();
+                    threadData = threadsResult.data || threadData;
+                }
+                
+                // 计算线程统计
+                const activeThreadCount = threadData.threads ? threadData.threads.filter(t => t.isActive).length : 0;
+                const totalThreadCount = threadData.threads ? threadData.threads.length : 0;
+                const idleThreadCount = totalThreadCount - activeThreadCount;
+                
+                // 更新线程池状态
+                document.getElementById('processingThreadCount').textContent = activeThreadCount;
+                document.getElementById('idleThreadCount2').textContent = idleThreadCount;
+                document.getElementById('totalThreadCount2').textContent = totalThreadCount;
+                document.getElementById('threadPoolQueueInfo').textContent = 
+                    `${metrics.threadPoolQueueSize || 0}/${metrics.threadPoolQueueCapacity || 0}`;
+                
+                // 更新线程可视化
+                updateThreadVisualization(threadData);
+                
+                // 检测所有任务是否处理完成
+                if (isCheckingCompletion && !processingCompleteTime) {
+                    const totalQueueSize = (metrics.queueSize || 0) + (metrics.vipQueueSize || 0) + (metrics.normalQueueSize || 0);
+                    const threadPoolQueueSize = metrics.threadPoolQueueSize || 0;
+                    
+                    // 当所有队列为空且没有活跃线程时，认为所有任务处理完成
+                    if (totalQueueSize === 0 && threadPoolQueueSize === 0 && activeThreadCount === 0 && requestCount > 0) {
+                        processingCompleteTime = Date.now();
+                        const totalProcessingTime = (processingCompleteTime - startTime) / 1000;
+                        const avgPaymentCount = requestCount > 0 ? (requestCount / totalProcessingTime).toFixed(2) : 0;
+                        
+                        // 更新UI显示
+                        const endDate = new Date(processingCompleteTime);
+                        document.getElementById('endTimeDisplay').textContent = `全部处理完成时间: ${endDate.toLocaleString()}`;
+                        document.getElementById('durationDisplay').innerHTML = 
+                            `测试耗时: ${totalProcessingTime.toFixed(2)}秒<br>` +
+                            `平均支付条数: ${avgPaymentCount} 条/秒`;
+                        
+                        document.getElementById('testStatus').textContent = '● 所有任务处理完成';
+                        document.getElementById('testStatus').className = 'status-stopped';
+                        
+                        addLog(`✅ 所有任务处理完成！`, 'success');
+                        addLog(`⏰ 全部处理完成时间: ${endDate.toLocaleString()}`, 'info');
+                        addLog(`📊 测试总耗时: ${totalProcessingTime.toFixed(2)}秒`, 'info');
+                        addLog(`📈 平均支付条数: ${avgPaymentCount} 条/秒`, 'info');
+                        
+                        isCheckingCompletion = false;
+                    }
+                }
+
+            } catch (error) {
+                console.error('获取指标失败:', error);
+            }
+        }
+
+        // 更新线程可视化
+        function updateThreadVisualization(threadData) {
+            const activeContainer = document.getElementById('activeThreadsContainer');
+            const idleContainer = document.getElementById('idleThreadsContainer');
+            
+            activeContainer.innerHTML = '';
+            idleContainer.innerHTML = '';
+
+            const threads = threadData.threads || [];
+            const activeThreads = threads.filter(t => t.isActive);
+            const idleThreads = threads.filter(t => !t.isActive);
+
+            // 添加活跃线程标签
+            activeThreads.slice(0, 20).forEach((thread, index) => {
+                const tag = document.createElement('span');
+                tag.className = 'thread-tag';
+                tag.textContent = thread.threadName ? thread.threadName.replace('payment-batch-processor-', 'T') : `T${index + 1}`;
+                tag.title = `处理中: ${thread.processingCount || 0} 条`;
+                activeContainer.appendChild(tag);
+            });
+
+            // 添加空闲线程标签
+            idleThreads.slice(0, 20).forEach((thread, index) => {
+                const tag = document.createElement('span');
+                tag.className = 'thread-tag idle';
+                tag.textContent = thread.threadName ? thread.threadName.replace('payment-batch-processor-', 'T') : `T${activeThreads.length + index + 1}`;
+                idleContainer.appendChild(tag);
+            });
+
+            // 如果数量太多，显示省略号
+            if (activeThreads.length > 20) {
+                const more = document.createElement('span');
+                more.className = 'thread-tag';
+                more.textContent = `+${activeThreads.length - 20}`;
+                activeContainer.appendChild(more);
+            }
+            if (idleThreads.length > 20) {
+                const more = document.createElement('span');
+                more.className = 'thread-tag idle';
+                more.textContent = `+${idleThreads.length - 20}`;
+                idleContainer.appendChild(more);
+            }
+        }
+
+        // 重置指标
+        async function resetMetrics() {
+            if (isRunning) {
+                alert('请先停止当前测试');
+                return;
+            }
+
+            try {
+                // 调用后端reset接口重置数据 - 本地调用
+                const response = await fetch(PaymentConfig.getApiUrl('payment', '/reset'), {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const result = await response.json();
+                if (result.code === 200) {
+                    addLog('✅ 后端数据已重置', 'success');
+                } else {
+                    addLog(`❌ 后端重置失败: ${result.message}`, 'error');
+                }
+            } catch (error) {
+                console.error('重置数据失败:', error);
+                addLog(`❌ 重置请求失败: ${error.message}`, 'error');
+            }
+
+            // 清空图表数据
+            qpsData = [];
+            timeLabels = [];
+            if (chart) {
+                chart.data.labels = timeLabels;
+                chart.data.datasets[0].data = qpsData;
+                chart.update();
+            }
+
+            // 清空日志
+            document.getElementById('logContainer').innerHTML = '<div class="log-entry"><span class="log-time">[系统]</span> 等待测试开始...</div>';
+
+            // 重置进度条
+            document.getElementById('progressBar').style.display = 'none';
+            document.getElementById('progressFill').style.width = '0%';
+            document.getElementById('progressFill').textContent = '0%';
+            
+            // 重置测试完成统计变量
+            testStopTime = null;
+            processingCompleteTime = null;
+            isCheckingCompletion = false;
+
+            // 重置所有指标显示
+            const metricIds = [
+                'currentQps', 'queueSize', 'vipQueueSize', 'normalQueueSize',
+                'totalRequests', 'successRate', 'totalBatches', 'timeoutRequests',
+                'avgProcessTime', 'maxProcessTime', 'minProcessTime',
+                'avgThirdPartyTime', 'thirdPartyTimeoutRate', 'thirdPartyTps',
+                'avgQueueWaitTime', 'processThroughput', 'activeThreads', 'waitingTasks',
+                'processingThreadCount', 'idleThreadCount2', 'totalThreadCount2'
+            ];
+            
+            metricIds.forEach(id => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.textContent = id.includes('Time') ? '0ms' : 
+                                         id.includes('Rate') ? '0%' : '0';
+                }
+            });
+
+            document.getElementById('threadPoolQueueInfo').textContent = '0/0';
+            document.getElementById('activeThreadsContainer').innerHTML = '';
+            document.getElementById('idleThreadsContainer').innerHTML = '';
+
+            addLog('🔄 前端数据已重置', 'info');
+        }
+
+        // 添加日志
+        function addLog(message, type = 'info') {
+            const container = document.getElementById('logContainer');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            
+            const time = new Date().toLocaleTimeString();
+            let typeClass = 'log-info';
+            if (type === 'success') typeClass = 'log-success';
+            if (type === 'error') typeClass = 'log-error';
+            
+            entry.innerHTML = `<span class="log-time">[${time}]</span> <span class="${typeClass}">${message}</span>`;
+            
+            container.appendChild(entry);
+            container.scrollTop = container.scrollHeight;
+
+            // 限制日志数量
+            while (container.children.length > 100) {
+                container.removeChild(container.firstChild);
+            }
+        }
+
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            initChart();
+            addLog('🎮 系统就绪，等待测试开始...', 'info');
+            
+            // 启动状态监控定时器，每秒自动刷新数据
+            statusInterval = setInterval(updateMetrics, 1000);
+            updateMetrics(); // 立即更新一次
+        });
+    </script>
+</body>
+</html>

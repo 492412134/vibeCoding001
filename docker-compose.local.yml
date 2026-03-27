@@ -1,0 +1,26 @@
+# Docker Compose 本地开发配置
+# 用于：Nginx Docker + 本地启动的微服务（方便在 Trae 中 Debug）
+# 使用方法：docker-compose -f docker-compose.local.yml up -d nginx
+
+services:
+  # Nginx 前端服务器（连接本地微服务）
+  nginx:
+    image: nginx:alpine
+    container_name: vibe-nginx-local
+    ports:
+      - "80:80"
+    volumes:
+      # 使用本地开发版 Nginx 配置
+      - ./docker/nginx/nginx-local.conf:/etc/nginx/nginx.conf:ro
+      # 挂载前端静态文件
+      - ./vibe-web:/usr/share/nginx/html:ro
+    networks:
+      - vibe-network
+    restart: unless-stopped
+    extra_hosts:
+      # 确保 host.docker.internal 可用（Linux 需要）
+      - "host.docker.internal:host-gateway"
+
+networks:
+  vibe-network:
+    driver: bridge

@@ -1,0 +1,227 @@
+### Vibe 项目灰度发布功能测试
+### 使用方式：在 VS Code 中安装 REST Client 插件，点击 "Send Request" 即可
+### 前置条件：
+### 1. Nacos 服务已启动
+### 2. Gateway 服务已启动（端口 8081）
+### 3. 支付服务 v1 版本已启动（端口 10991）
+### 4. 支付服务 v2 版本已启动（端口 10993）
+### 5. 在 Nacos 中已配置灰度规则
+
+### ============================================
+### 场景1：灰度用户ID匹配测试
+### 预期结果：请求应该路由到 v2 版本
+### ============================================
+
+
+POST http://localhost:8081/api/payment/single
+Content-Type: application/json
+X-User-Id: 1001
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoiVVNFUiIsInR5cGUiOiJhY2Nlc3MiLCJ1c2VySWQiOjQsInVzZXJuYW1lIjoidGVzdHVzZXIxIiwiaWF0IjoxNzc0NjE1MTU0LCJleHAiOjE3NzQ3MDE1NTR9.-UeQg1i9ypy37TIysRfdPjfAMzLxaQPIy5vIeOC_GOE
+
+
+{
+    "amount": 100,
+    "orderId": "gray-test-001"
+}
+
+
+### ============================================
+### 场景2：灰度用户ID匹配测试（另一个灰度用户）
+### 预期结果：请求应该路由到 v2 版本
+### ============================================
+POST http://localhost:8081/api/payment/single
+Content-Type: application/json
+X-User-Id: 1002
+
+{
+    "amount": 200,
+    "orderId": "gray-test-002"
+}
+
+
+### ============================================
+### 场景3：非灰度用户ID测试
+### 预期结果：请求应该路由到 v1 版本
+### ============================================
+POST http://localhost:8081/api/payment/single
+Content-Type: application/json
+X-User-Id: 9999
+
+{
+    "amount": 300,
+    "orderId": "gray-test-003"
+}
+
+
+### ============================================
+### 场景4：基于IP地址的灰度测试
+### 预期结果：来自 192.168.1.x 网段的请求应该路由到 v2 版本
+### ============================================
+POST http://localhost:8081/api/payment/single
+Content-Type: application/json
+
+{
+    "amount": 400,
+    "orderId": "gray-test-004"
+}
+
+
+### ============================================
+### 场景5：基于URL参数的灰度测试
+### 预期结果：携带 version=v2 参数的请求应该路由到 v2 版本
+### ============================================
+POST http://localhost:8081/api/payment/single?version=v2
+Content-Type: application/json
+
+{
+    "amount": 500,
+    "orderId": "gray-test-005"
+}
+
+
+### ============================================
+### 场景6：基于请求头的灰度测试
+### 预期结果：携带 X-Gray-Version: v2 的请求应该路由到 v2 版本
+### ============================================
+POST http://localhost:8081/api/payment/single
+Content-Type: application/json
+X-Gray-Version: v2
+
+{
+    "amount": 600,
+    "orderId": "gray-test-006"
+}
+
+
+### ============================================
+### 场景7：权重测试 - 连续发送多个请求
+### 预期结果：根据配置的权重比例，部分请求路由到 v2 版本
+### ============================================
+### 请求1
+POST http://localhost:8081/api/payment/single
+Content-Type: application/json
+
+{
+    "amount": 700,
+    "orderId": "gray-weight-001"
+}
+
+
+### ============================================
+### 请求2
+POST http://localhost:8081/api/payment/single
+Content-Type: application/json
+
+{
+    "amount": 701,
+    "orderId": "gray-weight-002"
+}
+
+
+### ============================================
+### 请求3
+POST http://localhost:8081/api/payment/single
+Content-Type: application/json
+
+{
+    "amount": 702,
+    "orderId": "gray-weight-003"
+}
+
+
+### ============================================
+### 请求4
+POST http://localhost:8081/api/payment/single
+Content-Type: application/json
+
+{
+    "amount": 703,
+    "orderId": "gray-weight-004"
+}
+
+
+### ============================================
+### 请求5
+POST http://localhost:8081/api/payment/single
+Content-Type: application/json
+
+{
+    "amount": 704,
+    "orderId": "gray-weight-005"
+}
+
+
+### ============================================
+### 场景8：组合条件测试 - 同时满足多个条件
+### 预期结果：只有同时满足用户ID和IP条件的请求才路由到 v2 版本
+### ============================================
+POST http://localhost:8081/api/payment/single
+Content-Type: application/json
+X-User-Id: 1001
+
+{
+    "amount": 800,
+    "orderId": "gray-combo-001"
+}
+
+
+### ============================================
+### 场景9：灰度禁用测试
+### 前置条件：在 Nacos 中将 enabled 设置为 false
+### 预期结果：所有请求都路由到 v1 版本
+### ============================================
+POST http://localhost:8081/api/payment/single
+Content-Type: application/json
+X-User-Id: 1001
+
+{
+    "amount": 900,
+    "orderId": "gray-disabled-001"
+}
+
+
+### ============================================
+### 场景10：灰度权重为0测试
+### 前置条件：在 Nacos 中将 weight 设置为 0
+### 预期结果：所有请求都路由到 v1 版本
+### ============================================
+POST http://localhost:8081/api/payment/single
+Content-Type: application/json
+X-User-Id: 1001
+
+{
+    "amount": 1000,
+    "orderId": "gray-zero-weight-001"
+}
+
+
+### ============================================
+### 场景11：订单服务灰度测试
+### 预期结果：如果配置了订单服务灰度规则，则按规则路由
+### ============================================
+GET http://localhost:8081/api/order/list
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoiVVNFUiIsInR5cGUiOiJhY2Nlc3MiLCJ1c2VySWQiOjQsInVzZXJuYW1lIjoidGVzdHVzZXIxIiwiaWF0IjoxNzc0NTA5NTYxLCJleHAiOjE3NzQ1OTU5NjF9.szvqaZcWLfSW7s2C7W4GPcoUTP-nEF_n7OpQ9XBEeV4
+X-User-Id: 1001
+
+
+### ============================================
+### 场景12：认证服务灰度测试
+### 预期结果：如果配置了认证服务灰度规则，则按规则路由
+### ============================================
+POST http://localhost:8081/auth/login
+Content-Type: application/json
+X-User-Id: 1001
+
+{
+    "username": "testuser1",
+    "password": "Test12341"
+}
+
+
+### ============================================
+### 验证方法：
+### 1. 查看 Gateway 日志，确认灰度路由日志
+###    日志示例：Gray routing enabled for service: vibe-payment-service, version: v2
+### 2. 查看支付服务 v1 和 v2 版本的日志，确认请求是否正确路由
+### 3. 检查 Nacos 服务列表，确认服务实例版本信息
+### ============================================

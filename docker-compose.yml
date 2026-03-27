@@ -1,0 +1,66 @@
+version: '3.8'
+
+services:
+  # Nginx 前端服务器
+  nginx:
+    image: nginx:alpine
+    container_name: vibe-nginx
+    ports:
+      - "80:80"
+    volumes:
+      # 挂载 Nginx 配置
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      # 挂载前端静态文件
+      - ./vibe-web:/usr/share/nginx/html:ro
+    networks:
+      - vibe-network
+    restart: unless-stopped
+
+  # Gateway 网关服务
+  gateway:
+    build: ./vibe-gateway
+    container_name: vibe-gateway
+    ports:
+      - "8081:8081"
+    environment:
+      - SERVER_PORT=8081
+      - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_CLOUD_NACOS_DISCOVERY_SERVER-ADDR=host.docker.internal:8848
+      - SPRING_CLOUD_NACOS_CONFIG_SERVER-ADDR=host.docker.internal:8848
+    networks:
+      - vibe-network
+    restart: unless-stopped
+
+  # Auth 认证服务
+  auth:
+    build: ./vibe-auth
+    container_name: vibe-auth
+    ports:
+      - "11000:11000"
+    environment:
+      - SERVER_PORT=11000
+      - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_CLOUD_NACOS_DISCOVERY_SERVER-ADDR=host.docker.internal:8848
+      - SPRING_CLOUD_NACOS_CONFIG_SERVER-ADDR=host.docker.internal:8848
+    networks:
+      - vibe-network
+    restart: unless-stopped
+
+  # Payment 支付服务
+  payment:
+    build: ./vibe-payment-service
+    container_name: vibe-payment
+    ports:
+      - "10991:10991"
+    environment:
+      - SERVER_PORT=10991
+      - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_CLOUD_NACOS_DISCOVERY_SERVER-ADDR=host.docker.internal:8848
+      - SPRING_CLOUD_NACOS_CONFIG_SERVER-ADDR=host.docker.internal:8848
+    networks:
+      - vibe-network
+    restart: unless-stopped
+
+networks:
+  vibe-network:
+    driver: bridge

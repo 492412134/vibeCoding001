@@ -1,0 +1,25 @@
+# Docker 环境配置
+
+server:
+  port: 11000
+
+spring:
+  cloud:
+    nacos:
+      discovery:
+        server-addr: host.docker.internal:8848
+      config:
+        server-addr: host.docker.internal:8848
+
+  datasource:
+    url: jdbc:mysql://host.docker.internal:3306/vibe_auth?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: root
+    password: sr123456
+
+  data:
+    redis:
+      host: host.docker.internal
+      port: 6379
+      database: 0
+      timeout: 2000ms

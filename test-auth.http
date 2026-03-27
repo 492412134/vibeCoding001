@@ -1,0 +1,96 @@
+### Vibe 项目认证服务测试
+### 使用方式：在 VS Code 中安装 REST Client 插件，点击 "Send Request" 即可
+
+### ============================================
+### 1. 健康检查
+### ============================================
+GET http://localhost:8081/auth/health
+
+
+### ============================================
+### 2. 用户注册
+### ============================================
+POST http://localhost:8081/auth/register
+Content-Type: application/json
+
+{
+    "username": "testuser",
+    "password": "Test1234",
+    "email": "test@example.com",
+    "phone": "13800138000"
+}
+
+
+### ============================================
+### 3. 用户登录
+### ============================================
+# @name login
+POST http://localhost:8081/auth/login
+Content-Type: application/json
+
+{
+    "username": "testuser",
+    "password": "Test1234"
+}
+
+
+### ============================================
+### 4. 测试无Token访问支付接口（应该返回401）
+### ============================================
+POST http://localhost:8081/api/payment/single
+Content-Type: application/json
+
+{
+    "amount": 100,
+    "policyCode": 123
+}
+
+
+### ============================================
+### 5. 测试带Token访问支付接口（应该成功）
+### ============================================
+# 使用上面登录接口返回的 token
+# 注意：需要从 login 响应中复制 accessToken 替换下面的 <your_token>
+POST http://localhost:8081/api/payment/single
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.accessToken}}
+
+{
+    "amount": 100,
+    "policyCode": 123
+}
+
+
+### ============================================
+### 6. 测试访问规则引擎（公开接口，不需要Token）
+### ============================================
+GET http://localhost:8081/api/rule/list
+
+
+### ============================================
+### 7. 测试访问支付线程信息（需要Token）
+### ============================================
+GET http://localhost:8081/api/payment/threads
+Authorization: Bearer {{login.response.body.accessToken}}
+
+
+### ============================================
+### 8. 刷新Token
+### ============================================
+POST http://localhost:8081/auth/refresh
+X-Refresh-Token: {{login.response.body.refreshToken}}
+
+
+### ============================================
+### 9. 用户登出
+### ============================================
+POST http://localhost:8081/auth/logout
+Authorization: Bearer {{login.response.body.accessToken}}
+X-Refresh-Token: {{login.response.body.refreshToken}}
+
+
+### ============================================
+### 10. 测试带Token访问订单服务（需要Token）
+### ============================================
+GET http://localhost:8081/api/order/list
+Authorization: Bearer {{login.response.body.accessToken}}
