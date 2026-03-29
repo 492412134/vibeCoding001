@@ -14,10 +14,10 @@ POST http://localhost:8081/api/auth/register
 Content-Type: application/json
 
 {
-    "username": "testuser1",
-    "password": "Test12341",
-    "email": "test1@example.com",
-    "phone": "13800138000"
+    "username": "testuser2",
+    "password": "Test12342",
+    "email": "test2@example.com",
+    "phone": "13800138002"
 }
 
 

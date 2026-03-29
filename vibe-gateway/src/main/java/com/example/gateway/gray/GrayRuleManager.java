@@ -1,7 +1,8 @@
 package com.example.gateway.gray;
 
-import lombok.RequiredArgsConstructor;
-import org.springframework.cloud.gateway.support.ServerWebExchangeUtils;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.cloud.context.environment.EnvironmentChangeEvent;
+import org.springframework.context.ApplicationListener;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 import org.springframework.web.server.ServerWebExchange;
@@ -11,23 +12,38 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 
+@Slf4j
 @Component
-public class GrayRuleManager {
-    private final GrayRuleConfig grayRuleConfig;
+public class GrayRuleManager implements ApplicationListener<EnvironmentChangeEvent> {
+    private final org.springframework.context.ApplicationContext applicationContext;
     private final Map<String, GrayRuleConfig.GrayRule> ruleCache = new ConcurrentHashMap<>();
 
-    public GrayRuleManager(GrayRuleConfig grayRuleConfig) {
-        this.grayRuleConfig = grayRuleConfig;
+    public GrayRuleManager(org.springframework.context.ApplicationContext applicationContext) {
+        this.applicationContext = applicationContext;
+    }
+
+    @Override
+    public void onApplicationEvent(EnvironmentChangeEvent event) {
+        //更新灰度发布的缓存规则；
+        for (String key : event.getKeys()) {
+            if (key.startsWith("gray.rules")) {
+                clearCache();
+                return;
+            }
+        }
+    }
+
+    private GrayRuleConfig getGrayRuleConfig() {
+        return applicationContext.getBean(GrayRuleConfig.class);
     }
 
     public GrayRuleConfig.GrayRule getRule(String service) {
-        // 先从缓存获取
         GrayRuleConfig.GrayRule rule = ruleCache.get(service);
         if (rule != null) {
             return rule;
         }
 
-        // 从配置中查找
+        GrayRuleConfig grayRuleConfig = getGrayRuleConfig();
         if (!CollectionUtils.isEmpty(grayRuleConfig.getRules())) {
             for (GrayRuleConfig.GrayRule grayRule : grayRuleConfig.getRules()) {
                 if (service.equals(grayRule.getService())) {
@@ -42,25 +58,43 @@ public class GrayRuleManager {
 
     public boolean shouldRouteToGray(ServerWebExchange exchange, String service) {
         GrayRuleConfig.GrayRule rule = getRule(service);
-        if (rule == null || !rule.isEnabled() || rule.getWeight() <= 0) {
+        if (rule == null || !rule.isEnabled()) {
+            log.debug("[GrayRule] No rule found or rule disabled for service: {}", service);
             return false;
         }
 
-        // 检查条件匹配
+        log.debug("[GrayRule] Found rule for service: {}, weight: {}, conditions: {}", 
+                service, rule.getWeight(), 
+                rule.getConditions() != null ? rule.getConditions().size() : 0);
+
+        // 有配置条件时：白名单模式（所有条件必须同时满足）
         if (!CollectionUtils.isEmpty(rule.getConditions())) {
+            boolean allMatch = true;
             for (GrayRuleConfig.GrayCondition condition : rule.getConditions()) {
-                if (!matchCondition(exchange, condition)) {
-                    return false;
+                boolean match = matchCondition(exchange, condition);
+                log.debug("[GrayRule] Condition type: {}, operator: {}, values: {}, match: {}",
+                        condition.getType(), condition.getOperator(), condition.getValues(), match);
+                if (!match) {
+                    allMatch = false;
+                    break;
                 }
+            }
+            // 白名单用户100%走灰度
+            if (allMatch) {
+                log.debug("[GrayRule] All conditions matched, routing to gray");
+                return true;
             }
         }
 
-        // 检查权重
-        if (rule.getWeight() >= 100) {
-            return true;
+        // 无条件或白名单未命中时：按比例分流
+        if (rule.getWeight() > 0) {
+            boolean result = Math.random() * 100 < rule.getWeight();
+            log.debug("[GrayRule] Weight-based routing, weight: {}, result: {}", rule.getWeight(), result);
+            return result;
         }
 
-        return Math.random() * 100 < rule.getWeight();
+        log.debug("[GrayRule] No weight configured, routing to normal");
+        return false;
     }
 
     private boolean matchCondition(ServerWebExchange exchange, GrayRuleConfig.GrayCondition condition) {
@@ -140,7 +174,6 @@ public class GrayRuleManager {
         }
     }
 
-    // 清除缓存，用于配置更新时
     public void clearCache() {
         ruleCache.clear();
     }

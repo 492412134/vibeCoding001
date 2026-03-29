@@ -4,18 +4,17 @@ server:
 spring:
   application:
     name: vibe-gateway
-
-  # 禁用外部配置导入，使用本地配置
-  config:
-    import: []
-
   cloud:
     nacos:
       discovery:
         server-addr: localhost:8848
         namespace: public
       config:
-        enabled: false
+        server-addr: localhost:8848
+        namespace: public
+        file-extension: yaml
+        refresh-enabled: true
+        enabled: true
 
     gateway:
       discovery:
@@ -42,7 +41,7 @@ spring:
             - Path=/api/payment/**
           filters:
             - StripPrefix=0
-            - GrayRoute  # 暂时禁用灰度路由
+            # GrayRoute 已改为全局过滤器 GrayRouteGlobalFilter，无需在此处配置
 
         # ============================================
         # 规则引擎路由 (公开访问，不需要认证)
@@ -127,6 +126,7 @@ gateway:
     white-list:
       - /api/auth/**
       - /api/rule/**
+      - /api/gray/**
       - /actuator/**
       - /
       - /index.html
@@ -156,3 +156,4 @@ spring.cloud.loadbalancer:
 logging:
   level:
     com.example.gateway.filter: debug
+    com.example.gateway.gray: debug

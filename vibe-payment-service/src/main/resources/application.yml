@@ -9,6 +9,7 @@ spring:
         namespace: public
         metadata:
           version: ${SERVICE_VERSION:v1}
+          hellomynameis: lzx
     
     sentinel:
       transport:
@@ -33,6 +34,14 @@ spring:
 
 server:
   port: 10991
+
+# 灰度节点配置
+gray:
+  node:
+    version: ${SERVICE_VERSION:v1}  # 节点版本：v1=正常节点, v2=灰度节点
+    enabled: ${GRAY_ENABLED:false}  # 是否启用灰度校验
+  user:
+    white-list: ${GRAY_USER_LIST:}  # 灰度用户白名单，逗号分隔
 
 mybatis:
   mapper-locations: classpath:mapper/*.xml

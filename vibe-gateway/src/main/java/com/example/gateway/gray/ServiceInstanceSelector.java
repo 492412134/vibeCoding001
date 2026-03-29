@@ -10,12 +10,22 @@ import java.util.List;
 import java.util.Random;
 import java.util.stream.Collectors;
 
+/**
+ * 功能：根据灰度规则选择服务实例
+ */
 @Component
 @RequiredArgsConstructor
 public class ServiceInstanceSelector {
+    
     private final DiscoveryClient discoveryClient;
     private final Random random = new Random();
 
+    /**
+     *  功能：根据灰度规则选择服务实例
+     * @param serviceId 服务ID
+     * @param version 服务版本
+     * @return 符合灰 版本的 服务实例
+     */
     public ServiceInstance selectInstance(String serviceId, String version) {
         // 获取所有服务实例
         List<ServiceInstance> instances = discoveryClient.getInstances(serviceId);

@@ -8,8 +8,8 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 
 @Data
-@Component
-@RefreshScope
+//@Component
+//@RefreshScope
 @ConfigurationProperties(prefix = "gray")
 public class GrayRuleConfig {
     private List<GrayRule> rules;

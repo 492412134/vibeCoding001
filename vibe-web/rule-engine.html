@@ -4,138 +4,367 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>规则引擎管理</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            image-rendering: pixelated;
+            image-rendering: -moz-crisp-edges;
+            image-rendering: crisp-edges;
         }
-        
+
+        :root {
+            --pixel-bg: #2d1b4e;
+            --pixel-dark: #1a0f2e;
+            --pixel-light: #4a3b69;
+            --pixel-accent: #ff6b9d;
+            --pixel-accent-dark: #c44569;
+            --pixel-gold: #ffd700;
+            --pixel-cyan: #00d9ff;
+            --pixel-green: #00ff88;
+        }
+
         body {
             min-height: 100vh;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+            background-color: var(--pixel-bg);
+            font-family: 'Press Start 2P', cursive;
             color: #fff;
+            overflow-x: hidden;
+            position: relative;
+            font-size: 12px;
         }
-        
+
+        /* 像素背景网格 */
+        .pixel-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image:
+                linear-gradient(rgba(0,0,0,0.1) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0,0,0,0.1) 1px, transparent 1px);
+            background-size: 20px 20px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* 扫描线效果 */
+        .scanlines {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                to bottom,
+                rgba(255,255,255,0),
+                rgba(255,255,255,0) 50%,
+                rgba(0,0,0,0.1) 50%,
+                rgba(0,0,0,0.1)
+            );
+            background-size: 100% 4px;
+            pointer-events: none;
+            z-index: 100;
+            opacity: 0.3;
+        }
+
         .container {
             max-width: 1200px;
             margin: 0 auto;
             padding: 40px 20px;
+            position: relative;
+            z-index: 10;
         }
-        
-        h1 {
-            text-align: center;
-            font-size: 3vw;
+
+        /* 返回链接 */
+        .back-link {
+            display: inline-block;
+            margin-bottom: 30px;
+            color: var(--pixel-cyan);
+            text-decoration: none;
+            font-size: 12px;
+            text-shadow: 2px 2px 0 var(--pixel-dark);
+            transition: all 0.1s;
+        }
+
+        .back-link:hover {
+            color: var(--pixel-gold);
+        }
+
+        /* 像素风格标题框 */
+        .title-box {
+            background: var(--pixel-dark);
+            border: 4px solid var(--pixel-light);
+            padding: 30px 40px;
+            position: relative;
             margin-bottom: 40px;
-            text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+            text-align: center;
+            box-shadow:
+                0 0 0 4px var(--pixel-dark),
+                0 0 0 8px var(--pixel-accent),
+                0 0 30px rgba(255, 107, 157, 0.5);
         }
-        
+
+        /* 像素角标装饰 */
+        .title-box::before,
+        .title-box::after {
+            content: '';
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            background: var(--pixel-accent);
+        }
+
+        .title-box::before {
+            top: -8px;
+            left: -8px;
+            box-shadow:
+                calc(100% + 0px) 0 0 var(--pixel-accent),
+                0 calc(100% + 0px) 0 var(--pixel-accent);
+        }
+
+        .title-box::after {
+            bottom: -8px;
+            right: -8px;
+            box-shadow:
+                calc(-100% - 0px) 0 0 var(--pixel-accent),
+                0 calc(-100% - 0px) 0 var(--pixel-accent);
+        }
+
+        h1 {
+            font-size: clamp(18px, 4vw, 28px);
+            color: var(--pixel-gold);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            line-height: 1.5;
+            text-shadow:
+                4px 4px 0 var(--pixel-dark),
+                -2px -2px 0 var(--pixel-accent);
+        }
+
+        /* 像素风格卡片 */
         .section {
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 15px;
+            background: var(--pixel-dark);
+            border: 4px solid var(--pixel-light);
             padding: 30px;
             margin-bottom: 30px;
-            backdrop-filter: blur(10px);
+            position: relative;
+            box-shadow:
+                0 0 0 4px var(--pixel-dark),
+                0 0 20px rgba(0, 217, 255, 0.3);
         }
-        
+
+        .section::before {
+            content: '';
+            position: absolute;
+            top: -4px;
+            left: -4px;
+            right: -4px;
+            bottom: -4px;
+            border: 2px solid var(--pixel-cyan);
+            clip-path: polygon(
+                0 8px, 8px 8px, 8px 0,
+                calc(100% - 8px) 0, calc(100% - 8px) 8px, 100% 8px,
+                100% calc(100% - 8px), calc(100% - 8px) calc(100% - 8px), calc(100% - 8px) 100%,
+                8px 100%, 8px calc(100% - 8px), 0 calc(100% - 8px)
+            );
+            pointer-events: none;
+        }
+
         h2 {
-            font-size: 1.5vw;
-            margin-bottom: 20px;
-            color: #667eea;
+            font-size: 14px;
+            margin-bottom: 25px;
+            color: var(--pixel-cyan);
+            text-shadow: 2px 2px 0 var(--pixel-dark);
+            letter-spacing: 0.1em;
         }
-        
+
         .form-group {
             margin-bottom: 20px;
         }
-        
+
         label {
             display: block;
-            margin-bottom: 5px;
+            margin-bottom: 10px;
             font-weight: 600;
+            color: var(--pixel-gold);
+            font-size: 10px;
+            letter-spacing: 0.05em;
         }
-        
+
         input, textarea, select {
             width: 100%;
-            padding: 10px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 8px;
-            background: rgba(255, 255, 255, 0.05);
+            padding: 12px;
+            border: 4px solid var(--pixel-light);
+            background: var(--pixel-bg);
             color: #fff;
-            font-size: 14px;
+            font-size: 12px;
+            font-family: 'Press Start 2P', cursive;
+            outline: none;
+            transition: all 0.1s;
         }
-        
+
+        input:focus, textarea:focus, select:focus {
+            border-color: var(--pixel-cyan);
+            box-shadow: 0 0 10px rgba(0, 217, 255, 0.3);
+        }
+
         textarea {
             height: 100px;
             resize: vertical;
+            line-height: 1.8;
         }
-        
-        .btn {
+
+        /* 像素风格按钮 */
+        .pixel-btn {
             display: inline-block;
-            padding: 10px 20px;
-            background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
+            padding: 15px 25px;
+            background: var(--pixel-accent);
             color: white;
+            text-decoration: none;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            position: relative;
             border: none;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 600;
             cursor: pointer;
-            transition: all 0.3s ease;
-            margin-right: 10px;
+            transition: all 0.1s;
+            font-family: 'Press Start 2P', cursive;
+            margin-right: 15px;
+            margin-bottom: 10px;
+            box-shadow:
+                0 6px 0 var(--pixel-accent-dark),
+                0 6px 0 4px var(--pixel-dark);
         }
-        
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+
+        .pixel-btn:hover {
+            transform: translateY(4px);
+            box-shadow:
+                0 2px 0 var(--pixel-accent-dark),
+                0 2px 0 4px var(--pixel-dark),
+                0 0 20px rgba(255, 107, 157, 0.5);
+            background: var(--pixel-gold);
         }
-        
+
+        .pixel-btn:active {
+            transform: translateY(6px);
+            box-shadow:
+                0 0 0 var(--pixel-accent-dark),
+                0 0 0 4px var(--pixel-dark);
+        }
+
+        .pixel-btn.secondary {
+            background: var(--pixel-light);
+            box-shadow:
+                0 6px 0 #2d1b4e,
+                0 6px 0 4px var(--pixel-dark);
+        }
+
+        .pixel-btn.secondary:hover {
+            background: var(--pixel-cyan);
+            box-shadow:
+                0 2px 0 #2d1b4e,
+                0 2px 0 4px var(--pixel-dark),
+                0 0 20px rgba(0, 217, 255, 0.5);
+        }
+
+        .pixel-btn.success {
+            background: var(--pixel-green);
+            color: var(--pixel-dark);
+            box-shadow:
+                0 6px 0 #00aa55,
+                0 6px 0 4px var(--pixel-dark);
+        }
+
+        .pixel-btn.success:hover {
+            background: #00ffaa;
+            box-shadow:
+                0 2px 0 #00aa55,
+                0 2px 0 4px var(--pixel-dark),
+                0 0 20px rgba(0, 255, 136, 0.5);
+        }
+
+        .pixel-btn.warning {
+            background: #ff9500;
+            box-shadow:
+                0 6px 0 #cc7700,
+                0 6px 0 4px var(--pixel-dark);
+        }
+
+        .pixel-btn.warning:hover {
+            background: #ffaa33;
+            box-shadow:
+                0 2px 0 #cc7700,
+                0 2px 0 4px var(--pixel-dark),
+                0 0 20px rgba(255, 149, 0, 0.5);
+        }
+
         .rules-list {
             margin-top: 20px;
         }
-        
+
+        /* 像素风格规则项 */
         .rule-item {
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 8px;
+            background: var(--pixel-bg);
+            border: 4px solid var(--pixel-light);
             padding: 20px;
+            margin-bottom: 15px;
+            position: relative;
+            box-shadow: 4px 4px 0 rgba(0,0,0,0.3);
+        }
+
+        .rule-item::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: var(--pixel-accent);
+        }
+
+        .rule-item h3 {
+            margin-bottom: 15px;
+            color: var(--pixel-gold);
+            font-size: 12px;
+            text-shadow: 2px 2px 0 var(--pixel-dark);
+        }
+
+        .rule-item p {
             margin-bottom: 10px;
-            border-left: 4px solid #667eea;
+            font-size: 10px;
+            line-height: 1.8;
+            color: #ccc;
         }
-        
-        .btn-secondary {
-            background: linear-gradient(45deg, #4a5568 0%, #2d3748 100%);
-            margin-left: 10px;
+
+        .rule-item strong {
+            color: var(--pixel-cyan);
         }
-        
-        .btn-warning {
-            background: linear-gradient(45deg, #ed8936 0%, #dd6b20 100%);
-            margin-left: 10px;
-        }
-        
-        .btn-success {
-            background: linear-gradient(45deg, #48bb78 0%, #38a169 100%);
-            margin-left: 10px;
-        }
-        
+
         .status-enabled {
             display: inline-block;
-            padding: 2px 8px;
-            background: linear-gradient(45deg, #48bb78 0%, #38a169 100%);
-            color: white;
-            border-radius: 4px;
-            font-size: 12px;
+            padding: 5px 10px;
+            background: var(--pixel-green);
+            color: var(--pixel-dark);
+            font-size: 8px;
             margin-left: 10px;
+            box-shadow: 2px 2px 0 rgba(0,0,0,0.3);
         }
-        
+
         .status-disabled {
             display: inline-block;
-            padding: 2px 8px;
-            background: linear-gradient(45deg, #a0aec0 0%, #718096 100%);
-            color: white;
-            border-radius: 4px;
-            font-size: 12px;
+            padding: 5px 10px;
+            background: #666;
+            color: #fff;
+            font-size: 8px;
             margin-left: 10px;
+            box-shadow: 2px 2px 0 rgba(0,0,0,0.3);
         }
-        
+
+        /* 像素风格模态框 */
         .modal {
             display: none;
             position: fixed;
@@ -145,79 +374,152 @@
             width: 100%;
             height: 100%;
             overflow: auto;
-            background-color: rgba(0,0,0,0.5);
+            background-color: rgba(0,0,0,0.8);
         }
-        
+
         .modal-content {
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-            margin: 15% auto;
+            background: var(--pixel-dark);
+            margin: 10% auto;
             padding: 30px;
-            border: 1px solid rgba(255,255,255,0.2);
-            border-radius: 15px;
-            width: 80%;
+            border: 4px solid var(--pixel-light);
+            width: 90%;
             max-width: 600px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            position: relative;
+            box-shadow:
+                0 0 0 4px var(--pixel-dark),
+                0 0 0 8px var(--pixel-accent),
+                0 0 50px rgba(255, 107, 157, 0.5);
         }
-        
+
+        .modal-content::before,
+        .modal-content::after {
+            content: '';
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            background: var(--pixel-accent);
+        }
+
+        .modal-content::before {
+            top: -8px;
+            left: -8px;
+            box-shadow:
+                calc(100% + 0px) 0 0 var(--pixel-accent),
+                0 calc(100% + 0px) 0 var(--pixel-accent);
+        }
+
+        .modal-content::after {
+            bottom: -8px;
+            right: -8px;
+            box-shadow:
+                calc(-100% - 0px) 0 0 var(--pixel-accent),
+                0 calc(-100% - 0px) 0 var(--pixel-accent);
+        }
+
         .close {
-            color: #aaa;
+            color: var(--pixel-accent);
             float: right;
-            font-size: 28px;
+            font-size: 24px;
             font-weight: bold;
+            cursor: pointer;
+            text-shadow: 2px 2px 0 var(--pixel-dark);
         }
-        
+
         .close:hover,
         .close:focus {
-            color: white;
-            text-decoration: none;
-            cursor: pointer;
+            color: var(--pixel-gold);
         }
-        
-        .rule-item h3 {
-            margin-bottom: 10px;
-            color: #667eea;
-        }
-        
-        .rule-item p {
-            margin-bottom: 5px;
-            font-size: 14px;
-        }
-        
+
         .execute-section {
             margin-top: 30px;
         }
-        
+
         #result {
             margin-top: 20px;
             padding: 20px;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 8px;
-            font-family: monospace;
+            background: var(--pixel-bg);
+            border: 4px solid var(--pixel-light);
+            font-family: 'Press Start 2P', cursive;
+            font-size: 10px;
             white-space: pre-wrap;
+            color: var(--pixel-green);
+            line-height: 1.8;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
         }
-        
+
+        /* 外部API规则卡片 */
+        .api-rule-card {
+            background: var(--pixel-bg);
+            border: 4px solid var(--pixel-light);
+            padding: 15px;
+            box-shadow: 4px 4px 0 rgba(0,0,0,0.3);
+        }
+
+        .api-rule-card h4 {
+            color: var(--pixel-cyan);
+            font-size: 11px;
+            margin-bottom: 10px;
+        }
+
+        .api-rule-card p {
+            font-size: 9px;
+            color: #888;
+            margin-bottom: 8px;
+        }
+
+        /* 响应式 */
         @media (max-width: 768px) {
+            .container {
+                padding: 20px 15px;
+            }
+
+            .title-box {
+                padding: 20px 25px;
+            }
+
             h1 {
-                font-size: 6vw;
+                font-size: 16px;
             }
-            h2 {
-                font-size: 4vw;
-            }
+
             .section {
+                padding: 20px;
+            }
+
+            h2 {
+                font-size: 12px;
+            }
+
+            .pixel-btn {
+                padding: 12px 18px;
+                font-size: 9px;
+                width: 100%;
+                margin-right: 0;
+                text-align: center;
+            }
+
+            input, textarea, select {
+                font-size: 10px;
+                padding: 10px;
+            }
+
+            .modal-content {
+                margin: 5% auto;
                 padding: 20px;
             }
         }
     </style>
 </head>
 <body>
+    <div class="pixel-bg"></div>
+    <div class="scanlines"></div>
+
     <div class="container">
-        <div style="margin-bottom: 20px;">
-            <a href="/index.html" style="color: #667eea; text-decoration: none; font-size: 16px;">
-                ← 返回首页
-            </a>
+        <a href="/index.html" class="back-link">← 返回首页</a>
+
+        <div class="title-box">
+            <h1>⚙️ 规则引擎管理</h1>
         </div>
-        <h1>规则引擎管理</h1>
-        
+
         <!-- 添加规则 -->
         <div class="section">
             <h2>添加规则</h2>
@@ -238,11 +540,11 @@
                 <label>优先级</label>
                 <input type="number" id="rulePriority" value="1" min="1">
             </div>
-            <button class="btn" onclick="addRule()">添加规则</button>
-            <button class="btn btn-secondary" onclick="loadExampleRule()">一键示例</button>
-            <button class="btn btn-secondary" onclick="loadExampleCompositeRule()">条件组合示例</button>
+            <button class="pixel-btn" onclick="addRule()">添加规则</button>
+            <button class="pixel-btn secondary" onclick="loadExampleRule()">一键示例</button>
+            <button class="pixel-btn secondary" onclick="loadExampleCompositeRule()">条件组合示例</button>
         </div>
-        
+
         <!-- 规则列表 -->
         <div class="section">
             <h2>规则列表</h2>
@@ -261,12 +563,12 @@
         <!-- 外部API规则 -->
         <div class="section">
             <h2>🔗 外部API规则</h2>
-            <p style="margin-bottom: 15px; color: #aaa;">通过调用第三方接口来判断规则是否通过，如验证身份证是否为残疾人等</p>
-            <button class="btn" onclick="window.open('/external-api.html', '_blank')">管理外部API配置</button>
-            <button class="btn btn-secondary" onclick="loadExternalApiRules()">加载API规则</button>
-            <div id="externalApiRules" style="margin-top: 20px;"></div>
+            <p style="margin-bottom: 20px; color: #aaa; font-size: 10px; line-height: 1.8;">通过调用第三方接口来判断规则是否通过，如验证身份证是否为残疾人等</p>
+            <button class="pixel-btn" onclick="window.open('/external-api.html', '_blank')">管理外部API配置</button>
+            <button class="pixel-btn secondary" onclick="loadExternalApiRules()">加载API规则</button>
+            <div id="externalApiRules" style="margin-top: 20px; display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px;"></div>
         </div>
-        
+
         <!-- 执行规则 -->
         <div class="section execute-section">
             <h2>执行规则</h2>
@@ -274,17 +576,17 @@
                 <label>事实数据 (JSON格式)</label>
                 <textarea id="factsJson" placeholder='例如: {"age": 20, "score": 95}'></textarea>
             </div>
-            <button class="btn" onclick="executeRules()">执行规则</button>
-            <button class="btn btn-secondary" onclick="loadExampleFacts()">一键示例数据</button>
+            <button class="pixel-btn" onclick="executeRules()">执行规则</button>
+            <button class="pixel-btn secondary" onclick="loadExampleFacts()">一键示例数据</button>
             <div id="result">执行结果将显示在这里</div>
         </div>
     </div>
-    
+
     <!-- 修改规则模态框 -->
     <div id="editModal" class="modal">
         <div class="modal-content">
             <span class="close" onclick="closeModal()">&times;</span>
-            <h2>修改规则</h2>
+            <h2 style="color: var(--pixel-gold); margin-bottom: 20px;">修改规则</h2>
             <input type="hidden" id="editRuleId">
             <div class="form-group">
                 <label>规则名称</label>
@@ -302,29 +604,29 @@
                 <label>优先级</label>
                 <input type="number" id="editRulePriority" value="1" min="1">
             </div>
-            <button class="btn" onclick="updateRule()">保存修改</button>
-            <button class="btn btn-secondary" onclick="closeModal()">取消</button>
+            <button class="pixel-btn" onclick="updateRule()">保存修改</button>
+            <button class="pixel-btn secondary" onclick="closeModal()">取消</button>
         </div>
     </div>
-    
+
     <script src="js/gateway-config.js"></script>
     <script>
         // 加载规则列表 - 通过Gateway访问
         function loadRules() {
             const listMode = document.getElementById('listMode').value;
             const url = listMode === 'all' ? GatewayConfig.getApiUrl('rules', '/list/all') : GatewayConfig.getApiUrl('rules', '/list');
-            
+
             fetch(url)
                 .then(response => response.json())
                 .then(rules => {
                     const rulesList = document.getElementById('rulesList');
                     rulesList.innerHTML = '';
-                    
+
                     if (rules.length === 0) {
-                        rulesList.innerHTML = '<p>暂无规则</p>';
+                        rulesList.innerHTML = '<p style="color: #888; font-size: 10px;">暂无规则</p>';
                         return;
                     }
-                    
+
                     rules.forEach(rule => {
                         const ruleItem = document.createElement('div');
                         ruleItem.className = 'rule-item';
@@ -332,23 +634,23 @@
                         const statusText = isEnabled ? '启用' : '停用';
                         const statusClass = isEnabled ? 'status-enabled' : 'status-disabled';
                         const toggleBtnText = isEnabled ? '停用' : '启用';
-                        const toggleBtnClass = isEnabled ? 'btn-warning' : 'btn-success';
-                        
+                        const toggleBtnClass = isEnabled ? 'warning' : 'success';
+
                         ruleItem.innerHTML = `
                             <h3>${rule.name} (ID: ${rule.id}) <span class="${statusClass}">${statusText}</span></h3>
                             <p><strong>条件:</strong> ${rule.condition}</p>
                             <p><strong>动作:</strong> ${rule.action}</p>
                             <p><strong>优先级:</strong> ${rule.priority}</p>
                             ${rule.version ? `<p><strong>版本:</strong> ${rule.version}</p>` : ''}
-                            <button class="btn" onclick='editRule(${JSON.stringify(rule)})'>编辑</button>
-                            <button class="btn btn-secondary" onclick="removeRule('${rule.id}')">删除</button>
-                            <button class="btn ${toggleBtnClass}" onclick="toggleRuleStatus('${rule.id}', ${!isEnabled})">${toggleBtnText}</button>
+                            <button class="pixel-btn" style="padding: 10px 15px; font-size: 9px;" onclick='editRule(${JSON.stringify(rule)})'>编辑</button>
+                            <button class="pixel-btn secondary" style="padding: 10px 15px; font-size: 9px;" onclick="removeRule('${rule.id}')">删除</button>
+                            <button class="pixel-btn ${toggleBtnClass}" style="padding: 10px 15px; font-size: 9px;" onclick="toggleRuleStatus('${rule.id}', ${!isEnabled})">${toggleBtnText}</button>
                         `;
                         rulesList.appendChild(ruleItem);
                     });
                 });
         }
-        
+
         // 切换规则启用/停用状态 - 通过Gateway访问
         function toggleRuleStatus(ruleId, enabled) {
             fetch(GatewayConfig.getApiUrl('rules', `/toggle/${ruleId}?enabled=${enabled}`), {
@@ -360,19 +662,19 @@
                 loadRules();
             });
         }
-        
+
         // 添加规则
         function addRule() {
             const ruleName = document.getElementById('ruleName').value;
             const ruleCondition = document.getElementById('ruleCondition').value;
             const ruleAction = document.getElementById('ruleAction').value;
             const rulePriority = parseInt(document.getElementById('rulePriority').value);
-            
+
             if (!ruleName || !ruleCondition || !ruleAction) {
                 alert('请填写所有字段');
                 return;
             }
-            
+
             fetch(GatewayConfig.getApiUrl('rules', '/add'), {
                 method: 'POST',
                 headers: {
@@ -410,19 +712,19 @@
                 });
             }
         }
-        
+
         // 执行规则
         function executeRules() {
             const factsJson = document.getElementById('factsJson').value;
-            
+
             if (!factsJson) {
                 alert('请输入事实数据');
                 return;
             }
-            
+
             try {
                 const facts = JSON.parse(factsJson);
-                
+
                 fetch(GatewayConfig.getApiUrl('rules', '/execute'), {
                     method: 'POST',
                     headers: {
@@ -438,7 +740,7 @@
                 alert('JSON格式错误');
             }
         }
-        
+
         // 编辑规则
         function editRule(rule) {
             document.getElementById('editRuleId').value = rule.id;
@@ -448,12 +750,12 @@
             document.getElementById('editRulePriority').value = rule.priority;
             document.getElementById('editModal').style.display = 'block';
         }
-        
+
         // 关闭模态框
         function closeModal() {
             document.getElementById('editModal').style.display = 'none';
         }
-        
+
         // 更新规则
         function updateRule() {
             const ruleId = document.getElementById('editRuleId').value;
@@ -461,12 +763,12 @@
             const ruleCondition = document.getElementById('editRuleCondition').value;
             const ruleAction = document.getElementById('editRuleAction').value;
             const rulePriority = parseInt(document.getElementById('editRulePriority').value);
-            
+
             if (!ruleName || !ruleCondition || !ruleAction) {
                 alert('请填写所有字段');
                 return;
             }
-            
+
             fetch(GatewayConfig.getApiUrl('rules', '/update'), {
                 method: 'PUT',
                 headers: {
@@ -487,7 +789,7 @@
                 closeModal();
             });
         }
-        
+
         // 加载示例规则
         function loadExampleRule() {
             document.getElementById('ruleName').value = '成年人判断';
@@ -495,7 +797,7 @@
             document.getElementById('ruleAction').value = 'result = "成年人";';
             document.getElementById('rulePriority').value = 1;
         }
-        
+
         // 加载条件组合示例规则
         function loadExampleCompositeRule() {
             document.getElementById('ruleName').value = '成绩等级判断';
@@ -503,12 +805,12 @@
             document.getElementById('ruleAction').value = 'result = "优秀";';
             document.getElementById('rulePriority').value = 2;
         }
-        
+
         // 加载示例事实数据
         function loadExampleFacts() {
             document.getElementById('factsJson').value = '{"age": 20, "score": 95}';
         }
-        
+
         // 加载外部API规则列表 - 通过Gateway访问
         function loadExternalApiRules() {
             fetch(GatewayConfig.getApiUrl('external', '/config/list/enabled'))
@@ -516,27 +818,26 @@
             .then(apis => {
                 const container = document.getElementById('externalApiRules');
                 if (apis.length === 0) {
-                    container.innerHTML = '<p style="color: #aaa;">暂无启用的外部API配置</p>';
+                    container.innerHTML = '<p style="color: #888; font-size: 10px;">暂无启用的外部API配置</p>';
                     return;
                 }
 
-                let html = '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px;">';
+                let html = '';
                 apis.forEach(api => {
                     html += `
-                        <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px;">
-                            <h4 style="color: #667eea; margin-bottom: 10px;">${api.apiName}</h4>
-                            <p style="font-size: 12px; color: #aaa; margin-bottom: 5px;">ID: ${api.apiId}</p>
-                            <p style="font-size: 12px; margin-bottom: 10px;">${api.apiUrl}</p>
-                            <p style="font-size: 12px; color: #888; margin-bottom: 10px;">${api.description || '暂无描述'}</p>
-                            <button class="btn" style="padding: 8px 15px; font-size: 12px;" onclick="createApiRule('${api.apiId}', '${api.apiName}')">创建规则</button>
+                        <div class="api-rule-card">
+                            <h4>${api.apiName}</h4>
+                            <p>ID: ${api.apiId}</p>
+                            <p>${api.apiUrl}</p>
+                            <p>${api.description || '暂无描述'}</p>
+                            <button class="pixel-btn" style="padding: 8px 12px; font-size: 8px;" onclick="createApiRule('${api.apiId}', '${api.apiName}')">创建规则</button>
                         </div>
                     `;
                 });
-                html += '</div>';
                 container.innerHTML = html;
             })
             .catch(error => {
-                document.getElementById('externalApiRules').innerHTML = '<p style="color: #ff6b6b;">加载失败：' + error + '</p>';
+                document.getElementById('externalApiRules').innerHTML = '<p style="color: var(--pixel-accent); font-size: 10px;">加载失败：' + error + '</p>';
             });
         }
 
@@ -575,6 +876,14 @@
             loadRules();
             loadExternalApiRules();
         };
+
+        // 点击模态框外部关闭
+        window.onclick = function(event) {
+            const modal = document.getElementById('editModal');
+            if (event.target == modal) {
+                closeModal();
+            }
+        }
     </script>
 </body>
 </html>

@@ -1,0 +1,16 @@
+# 配置nacos的config ，单领出来是为了解决nacos配置更新后，配置类的集合更新失败的问题
+spring:
+  application:
+    name: vibe-gateway
+  cloud:
+    nacos:
+      config:
+        server-addr: localhost:8848
+        namespace: public
+        file-extension: yaml
+        refresh-enabled: true
+        enabled: true
+        shared-configs:
+          - data-id: gray-rules.yaml
+            group: DEFAULT_GROUP
+            refresh: true

@@ -111,9 +111,13 @@ public class AuthFilter implements GlobalFilter, Ordered {
      */
     private String extractToken(ServerHttpRequest request) {
         String bearerToken = request.getHeaders().getFirst("Authorization");
+        log.debug("[AuthFilter] Authorization header: {}", bearerToken);
         if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
-            return bearerToken.substring(7);
+            String token = bearerToken.substring(7);
+            log.debug("[AuthFilter] Extracted token: {}", token.substring(0, Math.min(20, token.length())) + "...");
+            return token;
         }
+        log.warn("[AuthFilter] No valid Authorization header found");
         return null;
     }
 

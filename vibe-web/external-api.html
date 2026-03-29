@@ -4,150 +4,363 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>外部API配置管理</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            image-rendering: pixelated;
+            image-rendering: -moz-crisp-edges;
+            image-rendering: crisp-edges;
         }
-        
+
+        :root {
+            --pixel-bg: #2d1b4e;
+            --pixel-dark: #1a0f2e;
+            --pixel-light: #4a3b69;
+            --pixel-accent: #ff6b9d;
+            --pixel-accent-dark: #c44569;
+            --pixel-gold: #ffd700;
+            --pixel-cyan: #00d9ff;
+            --pixel-green: #00ff88;
+        }
+
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
-            padding: 20px;
+            background-color: var(--pixel-bg);
+            font-family: 'Press Start 2P', cursive;
+            color: #fff;
+            overflow-x: hidden;
+            position: relative;
+            font-size: 12px;
         }
-        
+
+        /* 像素背景网格 */
+        .pixel-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image:
+                linear-gradient(rgba(0,0,0,0.1) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0,0,0,0.1) 1px, transparent 1px);
+            background-size: 20px 20px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* 扫描线效果 */
+        .scanlines {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                to bottom,
+                rgba(255,255,255,0),
+                rgba(255,255,255,0) 50%,
+                rgba(0,0,0,0.1) 50%,
+                rgba(0,0,0,0.1)
+            );
+            background-size: 100% 4px;
+            pointer-events: none;
+            z-index: 100;
+            opacity: 0.3;
+        }
+
         .container {
             max-width: 1400px;
             margin: 0 auto;
+            padding: 40px 20px;
+            position: relative;
+            z-index: 10;
         }
-        
-        h1 {
-            color: white;
-            text-align: center;
+
+        /* 返回链接 */
+        .back-link {
+            display: inline-block;
             margin-bottom: 30px;
-            font-size: 2.5em;
+            color: var(--pixel-cyan);
+            text-decoration: none;
+            font-size: 12px;
+            text-shadow: 2px 2px 0 var(--pixel-dark);
+            transition: all 0.1s;
         }
-        
+
+        .back-link:hover {
+            color: var(--pixel-gold);
+        }
+
+        /* 像素风格标题框 */
+        .title-box {
+            background: var(--pixel-dark);
+            border: 4px solid var(--pixel-light);
+            padding: 30px 40px;
+            position: relative;
+            margin-bottom: 40px;
+            text-align: center;
+            box-shadow:
+                0 0 0 4px var(--pixel-dark),
+                0 0 0 8px var(--pixel-accent),
+                0 0 30px rgba(255, 107, 157, 0.5);
+        }
+
+        /* 像素角标装饰 */
+        .title-box::before,
+        .title-box::after {
+            content: '';
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            background: var(--pixel-accent);
+        }
+
+        .title-box::before {
+            top: -8px;
+            left: -8px;
+            box-shadow:
+                calc(100% + 0px) 0 0 var(--pixel-accent),
+                0 calc(100% + 0px) 0 var(--pixel-accent);
+        }
+
+        .title-box::after {
+            bottom: -8px;
+            right: -8px;
+            box-shadow:
+                calc(-100% - 0px) 0 0 var(--pixel-accent),
+                0 calc(-100% - 0px) 0 var(--pixel-accent);
+        }
+
+        h1 {
+            font-size: clamp(16px, 4vw, 24px);
+            color: var(--pixel-gold);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            line-height: 1.5;
+            text-shadow:
+                4px 4px 0 var(--pixel-dark),
+                -2px -2px 0 var(--pixel-accent);
+        }
+
+        /* 像素风格卡片 */
         .card {
-            background: white;
-            border-radius: 15px;
-            padding: 25px;
-            margin-bottom: 25px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            background: var(--pixel-dark);
+            border: 4px solid var(--pixel-light);
+            padding: 30px;
+            margin-bottom: 30px;
+            position: relative;
+            box-shadow:
+                0 0 0 4px var(--pixel-dark),
+                0 0 20px rgba(0, 217, 255, 0.3);
         }
-        
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: -4px;
+            left: -4px;
+            right: -4px;
+            bottom: -4px;
+            border: 2px solid var(--pixel-cyan);
+            clip-path: polygon(
+                0 8px, 8px 8px, 8px 0,
+                calc(100% - 8px) 0, calc(100% - 8px) 8px, 100% 8px,
+                100% calc(100% - 8px), calc(100% - 8px) calc(100% - 8px), calc(100% - 8px) 100%,
+                8px 100%, 8px calc(100% - 8px), 0 calc(100% - 8px)
+            );
+            pointer-events: none;
+        }
+
         .card h2 {
-            color: #333;
-            margin-bottom: 20px;
-            font-size: 1.5em;
+            font-size: 14px;
+            margin-bottom: 25px;
+            color: var(--pixel-cyan);
+            text-shadow: 2px 2px 0 var(--pixel-dark);
+            letter-spacing: 0.1em;
         }
-        
+
         .form-group {
-            margin-bottom: 15px;
+            margin-bottom: 20px;
         }
-        
+
         label {
             display: block;
-            margin-bottom: 5px;
-            color: #555;
+            margin-bottom: 10px;
             font-weight: 600;
+            color: var(--pixel-gold);
+            font-size: 10px;
+            letter-spacing: 0.05em;
         }
-        
+
         input, select, textarea {
             width: 100%;
-            padding: 10px 15px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 14px;
-            transition: border-color 0.3s;
-        }
-        
-        input:focus, select:focus, textarea:focus {
+            padding: 12px;
+            border: 4px solid var(--pixel-light);
+            background: var(--pixel-bg);
+            color: #fff;
+            font-size: 12px;
+            font-family: 'Press Start 2P', cursive;
             outline: none;
-            border-color: #667eea;
+            transition: all 0.1s;
         }
-        
+
+        input:focus, select:focus, textarea:focus {
+            border-color: var(--pixel-cyan);
+            box-shadow: 0 0 10px rgba(0, 217, 255, 0.3);
+        }
+
         textarea {
             min-height: 100px;
             resize: vertical;
+            line-height: 1.8;
         }
-        
-        .btn {
-            padding: 12px 25px;
+
+        /* 像素风格按钮 */
+        .pixel-btn {
+            display: inline-block;
+            padding: 15px 25px;
+            background: var(--pixel-accent);
+            color: white;
+            text-decoration: none;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            position: relative;
             border: none;
-            border-radius: 8px;
             cursor: pointer;
-            font-size: 14px;
-            font-weight: 600;
-            transition: all 0.3s;
-            margin-right: 10px;
+            transition: all 0.1s;
+            font-family: 'Press Start 2P', cursive;
+            margin-right: 15px;
             margin-bottom: 10px;
+            box-shadow:
+                0 6px 0 var(--pixel-accent-dark),
+                0 6px 0 4px var(--pixel-dark);
         }
-        
-        .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
+
+        .pixel-btn:hover {
+            transform: translateY(4px);
+            box-shadow:
+                0 2px 0 var(--pixel-accent-dark),
+                0 2px 0 4px var(--pixel-dark),
+                0 0 20px rgba(255, 107, 157, 0.5);
+            background: var(--pixel-gold);
         }
-        
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+
+        .pixel-btn:active {
+            transform: translateY(6px);
+            box-shadow:
+                0 0 0 var(--pixel-accent-dark),
+                0 0 0 4px var(--pixel-dark);
         }
-        
-        .btn-success {
-            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
-            color: white;
+
+        .pixel-btn.secondary {
+            background: var(--pixel-light);
+            box-shadow:
+                0 6px 0 #2d1b4e,
+                0 6px 0 4px var(--pixel-dark);
         }
-        
-        .btn-warning {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-            color: white;
+
+        .pixel-btn.secondary:hover {
+            background: var(--pixel-cyan);
+            box-shadow:
+                0 2px 0 #2d1b4e,
+                0 2px 0 4px var(--pixel-dark),
+                0 0 20px rgba(0, 217, 255, 0.5);
         }
-        
-        .btn-info {
-            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-            color: white;
+
+        .pixel-btn.success {
+            background: var(--pixel-green);
+            color: var(--pixel-dark);
+            box-shadow:
+                0 6px 0 #00aa55,
+                0 6px 0 4px var(--pixel-dark);
         }
-        
-        .btn-secondary {
-            background: #6c757d;
-            color: white;
+
+        .pixel-btn.success:hover {
+            background: #00ffaa;
+            box-shadow:
+                0 2px 0 #00aa55,
+                0 2px 0 4px var(--pixel-dark),
+                0 0 20px rgba(0, 255, 136, 0.5);
         }
-        
+
+        .pixel-btn.info {
+            background: var(--pixel-cyan);
+            color: var(--pixel-dark);
+            box-shadow:
+                0 6px 0 #0088aa,
+                0 6px 0 4px var(--pixel-dark);
+        }
+
+        .pixel-btn.info:hover {
+            background: #88ffff;
+            box-shadow:
+                0 2px 0 #0088aa,
+                0 2px 0 4px var(--pixel-dark),
+                0 0 20px rgba(0, 217, 255, 0.5);
+        }
+
+        .pixel-btn.warning {
+            background: #ff9500;
+            box-shadow:
+                0 6px 0 #cc7700,
+                0 6px 0 4px var(--pixel-dark);
+        }
+
+        .pixel-btn.warning:hover {
+            background: #ffaa33;
+            box-shadow:
+                0 2px 0 #cc7700,
+                0 2px 0 4px var(--pixel-dark),
+                0 0 20px rgba(255, 149, 0, 0.5);
+        }
+
+        /* 像素风格表格 */
         table {
             width: 100%;
-            border-collapse: collapse;
-            margin-top: 15px;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin-top: 20px;
+            font-size: 10px;
         }
-        
+
         th, td {
-            padding: 12px;
+            padding: 15px 12px;
             text-align: left;
-            border-bottom: 1px solid #e0e0e0;
+            border-bottom: 4px solid var(--pixel-light);
         }
-        
+
         th {
-            background: #f8f9fa;
+            background: var(--pixel-bg);
+            color: var(--pixel-gold);
             font-weight: 600;
-            color: #555;
+            text-shadow: 2px 2px 0 var(--pixel-dark);
         }
-        
+
         tr:hover {
-            background: #f8f9fa;
+            background: rgba(255, 255, 255, 0.05);
         }
-        
+
+        td {
+            color: #ccc;
+        }
+
         .status-enabled {
-            color: #28a745;
+            color: var(--pixel-green);
             font-weight: 600;
+            text-shadow: 2px 2px 0 var(--pixel-dark);
         }
-        
+
         .status-disabled {
-            color: #dc3545;
+            color: var(--pixel-accent);
             font-weight: 600;
+            text-shadow: 2px 2px 0 var(--pixel-dark);
         }
-        
+
+        /* 像素风格模态框 */
         .modal {
             display: none;
             position: fixed;
@@ -156,104 +369,247 @@
             top: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0,0,0,0.5);
+            overflow: auto;
+            background-color: rgba(0,0,0,0.8);
         }
-        
+
         .modal-content {
-            background-color: white;
+            background: var(--pixel-dark);
             margin: 5% auto;
             padding: 30px;
-            border-radius: 15px;
-            width: 80%;
+            border: 4px solid var(--pixel-light);
+            width: 90%;
             max-width: 800px;
             max-height: 80vh;
             overflow-y: auto;
+            position: relative;
+            box-shadow:
+                0 0 0 4px var(--pixel-dark),
+                0 0 0 8px var(--pixel-accent),
+                0 0 50px rgba(255, 107, 157, 0.5);
         }
-        
+
+        .modal-content::before,
+        .modal-content::after {
+            content: '';
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            background: var(--pixel-accent);
+        }
+
+        .modal-content::before {
+            top: -8px;
+            left: -8px;
+            box-shadow:
+                calc(100% + 0px) 0 0 var(--pixel-accent),
+                0 calc(100% + 0px) 0 var(--pixel-accent);
+        }
+
+        .modal-content::after {
+            bottom: -8px;
+            right: -8px;
+            box-shadow:
+                calc(-100% - 0px) 0 0 var(--pixel-accent),
+                0 calc(-100% - 0px) 0 var(--pixel-accent);
+        }
+
         .close {
-            color: #aaa;
+            color: var(--pixel-accent);
             float: right;
-            font-size: 28px;
+            font-size: 24px;
             font-weight: bold;
             cursor: pointer;
+            text-shadow: 2px 2px 0 var(--pixel-dark);
         }
-        
+
         .close:hover {
-            color: #000;
+            color: var(--pixel-gold);
         }
-        
+
+        /* 示例框 */
         .example-box {
-            background: #f8f9fa;
-            padding: 15px;
-            border-radius: 8px;
-            margin-top: 10px;
-            font-size: 13px;
+            background: var(--pixel-bg);
+            border: 4px solid var(--pixel-light);
+            padding: 20px;
+            margin-top: 15px;
+            font-size: 10px;
+            line-height: 1.8;
         }
-        
+
         .example-box h4 {
-            color: #667eea;
+            color: var(--pixel-cyan);
+            margin-bottom: 15px;
+            font-size: 11px;
+        }
+
+        .example-box p {
             margin-bottom: 10px;
+            color: #ccc;
         }
-        
+
         .example-box pre {
-            background: #fff;
-            padding: 10px;
-            border-radius: 5px;
+            background: var(--pixel-dark);
+            padding: 15px;
+            border: 2px solid var(--pixel-light);
             overflow-x: auto;
+            color: var(--pixel-green);
+            font-family: 'Press Start 2P', cursive;
+            font-size: 9px;
+            line-height: 1.8;
         }
-        
+
         .help-text {
-            font-size: 12px;
-            color: #666;
-            margin-top: 5px;
+            font-size: 9px;
+            color: #888;
+            margin-top: 8px;
+            line-height: 1.6;
         }
-        
+
         .two-column {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 20px;
         }
-        
+
+        /* 测试结果 */
         .test-result {
             margin-top: 20px;
-            padding: 15px;
-            border-radius: 8px;
+            padding: 20px;
+            border: 4px solid var(--pixel-light);
+            font-size: 10px;
+            line-height: 1.8;
         }
-        
+
         .test-result.success {
-            background: #d4edda;
-            border: 1px solid #c3e6cb;
-            color: #155724;
+            background: rgba(0, 255, 136, 0.1);
+            border-color: var(--pixel-green);
+            color: var(--pixel-green);
         }
-        
+
         .test-result.error {
-            background: #f8d7da;
-            border: 1px solid #f5c6cb;
-            color: #721c24;
+            background: rgba(255, 107, 157, 0.1);
+            border-color: var(--pixel-accent);
+            color: var(--pixel-accent);
+        }
+
+        .test-result h3 {
+            color: var(--pixel-gold);
+            margin-bottom: 15px;
+        }
+
+        .test-result pre {
+            background: var(--pixel-dark);
+            padding: 15px;
+            margin-top: 10px;
+            overflow-x: auto;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 9px;
+            line-height: 1.8;
+        }
+
+        /* 案例卡片 */
+        .case-card {
+            background: var(--pixel-bg);
+            border: 4px solid var(--pixel-light);
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.1s;
+            box-shadow: 4px 4px 0 rgba(0,0,0,0.3);
+        }
+
+        .case-card:hover {
+            border-color: var(--pixel-cyan);
+            box-shadow: 6px 6px 0 rgba(0,0,0,0.3), 0 0 20px rgba(0, 217, 255, 0.3);
+            transform: translate(-2px, -2px);
+        }
+
+        .case-card h4 {
+            color: var(--pixel-cyan);
+            font-size: 11px;
+            margin-bottom: 10px;
+        }
+
+        .case-card p {
+            font-size: 9px;
+            color: #888;
+            margin-bottom: 5px;
+        }
+
+        /* 响应式 */
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px 15px;
+            }
+
+            .title-box {
+                padding: 20px 25px;
+            }
+
+            h1 {
+                font-size: 14px;
+            }
+
+            .card {
+                padding: 20px;
+            }
+
+            .card h2 {
+                font-size: 12px;
+            }
+
+            .pixel-btn {
+                padding: 12px 18px;
+                font-size: 9px;
+                width: 100%;
+                margin-right: 0;
+                text-align: center;
+            }
+
+            input, select, textarea {
+                font-size: 10px;
+                padding: 10px;
+            }
+
+            .two-column {
+                grid-template-columns: 1fr;
+            }
+
+            th, td {
+                padding: 10px 8px;
+                font-size: 8px;
+            }
+
+            .modal-content {
+                margin: 2% auto;
+                padding: 20px;
+            }
         }
     </style>
 </head>
 <body>
+    <div class="pixel-bg"></div>
+    <div class="scanlines"></div>
+
     <div class="container">
-        <div style="margin-bottom: 20px;">
-            <a href="/rule-engine.html" style="color: #667eea; text-decoration: none; font-size: 16px;">
-                ← 返回规则引擎
-            </a>
+        <a href="/rule-engine.html" class="back-link">← 返回规则引擎</a>
+
+        <div class="title-box">
+            <h1>🌐 外部API配置管理</h1>
         </div>
-        <h1>🌐 外部API配置管理</h1>
-        
+
         <!-- API配置表单 -->
         <div class="card">
             <h2>添加/编辑 API配置</h2>
             <form id="apiConfigForm">
                 <input type="hidden" id="apiId" name="apiId">
-                
+
                 <div class="two-column">
                     <div class="form-group">
                         <label>API名称 *</label>
                         <input type="text" id="apiName" name="apiName" placeholder="如：残疾人身份验证接口" required>
                     </div>
-                    
+
                     <div class="form-group">
                         <label>HTTP方法 *</label>
                         <select id="httpMethod" name="httpMethod" required>
@@ -263,59 +619,59 @@
                         </select>
                     </div>
                 </div>
-                
+
                 <div class="form-group">
                     <label>API地址 *</label>
                     <input type="text" id="apiUrl" name="apiUrl" placeholder="https://api.example.com/check" required>
                     <div class="help-text">支持变量占位符，如：https://api.example.com/check?id=${idCard}</div>
                 </div>
-                
+
                 <div class="form-group">
                     <label>请求体模板 (JSON格式)</label>
                     <textarea id="requestTemplate" name="requestTemplate" placeholder='{"idCard": "${idCard}", "name": "${name}"}'></textarea>
                     <div class="help-text">支持${变量名}占位符，会在调用时自动替换为实际值</div>
                 </div>
-                
+
                 <div class="two-column">
                     <div class="form-group">
                         <label>响应字段路径</label>
                         <input type="text" id="responseField" name="responseField" placeholder="data.isDisabled">
                         <div class="help-text">从响应JSON中提取的字段路径，如：data.result.isValid</div>
                     </div>
-                    
+
                     <div class="form-group">
                         <label>成功条件表达式 *</label>
                         <input type="text" id="successCondition" name="successCondition" placeholder="response == true" required>
                         <div class="help-text">JavaScript表达式，response变量表示提取的字段值</div>
                     </div>
                 </div>
-                
+
                 <div class="form-group">
                     <label>请求头 (JSON格式)</label>
                     <textarea id="headers" name="headers" placeholder='{"Content-Type": "application/json", "Authorization": "Bearer ${token}"}'></textarea>
                 </div>
-                
+
                 <div class="two-column">
                     <div class="form-group">
                         <label>超时时间 (毫秒)</label>
                         <input type="number" id="timeout" name="timeout" value="5000" min="1000" max="60000">
                     </div>
-                    
+
                     <div class="form-group">
                         <label>描述</label>
                         <input type="text" id="description" name="description" placeholder="接口用途说明">
                     </div>
                 </div>
-                
+
                 <div>
-                    <button type="submit" class="btn btn-primary">保存配置</button>
-                    <button type="button" class="btn btn-secondary" onclick="resetForm()">重置</button>
-                    <button type="button" class="btn btn-info" onclick="loadExample()">加载示例</button>
-                    <button type="button" class="btn btn-success" onclick="openCaseModal()">添加案例</button>
+                    <button type="submit" class="pixel-btn">保存配置</button>
+                    <button type="button" class="pixel-btn secondary" onclick="resetForm()">重置</button>
+                    <button type="button" class="pixel-btn info" onclick="loadExample()">加载示例</button>
+                    <button type="button" class="pixel-btn success" onclick="openCaseModal()">添加案例</button>
                 </div>
             </form>
         </div>
-        
+
         <!-- 示例说明 -->
         <div class="card">
             <h2>配置示例</h2>
@@ -332,7 +688,7 @@
                 <p><strong>说明：</strong>调用接口后，如果data.isDisabled为true，则规则通过</p>
             </div>
         </div>
-        
+
         <!-- API列表 -->
         <div class="card">
             <h2>API配置列表</h2>
@@ -352,22 +708,22 @@
             </table>
         </div>
     </div>
-    
+
     <!-- 测试弹窗 -->
     <div id="testModal" class="modal">
         <div class="modal-content">
             <span class="close" onclick="closeTestModal()">&times;</span>
-            <h2>测试API调用</h2>
+            <h2 style="color: var(--pixel-gold); margin-bottom: 20px;">测试API调用</h2>
             <div id="testForm">
                 <div class="form-group">
                     <label>测试数据 (JSON格式)</label>
                     <textarea id="testData" rows="5" placeholder='{"idCard": "110101199001011234", "name": "张三"}'></textarea>
                 </div>
                 <div style="margin-bottom: 15px;">
-                    <button class="btn btn-info" onclick="loadTestExample()">加载示例数据</button>
-                    <button class="btn btn-secondary" onclick="clearTestData()">清空</button>
+                    <button class="pixel-btn info" style="padding: 10px 15px; font-size: 9px;" onclick="loadTestExample()">加载示例数据</button>
+                    <button class="pixel-btn secondary" style="padding: 10px 15px; font-size: 9px;" onclick="clearTestData()">清空</button>
                 </div>
-                <button class="btn btn-success" onclick="executeTest()">执行测试</button>
+                <button class="pixel-btn success" style="padding: 12px 20px; font-size: 10px;" onclick="executeTest()">执行测试</button>
             </div>
             <div id="testResult"></div>
         </div>
@@ -377,56 +733,56 @@
     <div id="caseModal" class="modal">
         <div class="modal-content">
             <span class="close" onclick="closeCaseModal()">&times;</span>
-            <h2>🎯 选择API案例</h2>
-            <p style="margin-bottom: 20px; color: #666;">选择一个预设的API案例，一键添加到配置表单</p>
-            
-            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px;">
+            <h2 style="color: var(--pixel-gold); margin-bottom: 20px;">🎯 选择API案例</h2>
+            <p style="margin-bottom: 20px; color: #888; font-size: 10px; line-height: 1.8;">选择一个预设的API案例，一键添加到配置表单</p>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px;">
                 <!-- 案例1：残疾人验证 -->
-                <div style="border: 1px solid #e0e0e0; border-radius: 8px; padding: 15px; cursor: pointer; transition: all 0.3s;" onclick="loadCase('disability')">
-                    <h4 style="color: #667eea; margin-bottom: 10px;">残疾人身份验证</h4>
-                    <p style="font-size: 12px; margin-bottom: 5px;">验证身份证是否为残疾人</p>
-                    <p style="font-size: 12px; color: #888; margin-bottom: 10px;">/mock-api/disability/verify</p>
-                    <button class="btn btn-info" style="width: 100%; font-size: 12px;">选择此案例</button>
+                <div class="case-card" onclick="loadCase('disability')">
+                    <h4>残疾人身份验证</h4>
+                    <p>验证身份证是否为残疾人</p>
+                    <p style="color: var(--pixel-cyan);">/mock-api/disability/verify</p>
+                    <button class="pixel-btn info" style="width: 100%; font-size: 8px; padding: 10px; margin: 10px 0 0 0;">选择此案例</button>
                 </div>
-                
+
                 <!-- 案例2：信用评分 -->
-                <div style="border: 1px solid #e0e0e0; border-radius: 8px; padding: 15px; cursor: pointer; transition: all 0.3s;" onclick="loadCase('credit')">
-                    <h4 style="color: #667eea; margin-bottom: 10px;">信用评分查询</h4>
-                    <p style="font-size: 12px; margin-bottom: 5px;">获取信用评分（500-850分）</p>
-                    <p style="font-size: 12px; color: #888; margin-bottom: 10px;">/mock-api/credit/score</p>
-                    <button class="btn btn-info" style="width: 100%; font-size: 12px;">选择此案例</button>
+                <div class="case-card" onclick="loadCase('credit')">
+                    <h4>信用评分查询</h4>
+                    <p>获取信用评分（500-850分）</p>
+                    <p style="color: var(--pixel-cyan);">/mock-api/credit/score</p>
+                    <button class="pixel-btn info" style="width: 100%; font-size: 8px; padding: 10px; margin: 10px 0 0 0;">选择此案例</button>
                 </div>
-                
+
                 <!-- 案例3：黑名单检查 -->
-                <div style="border: 1px solid #e0e0e0; border-radius: 8px; padding: 15px; cursor: pointer; transition: all 0.3s;" onclick="loadCase('blacklist')">
-                    <h4 style="color: #667eea; margin-bottom: 10px;">黑名单检查</h4>
-                    <p style="font-size: 12px; margin-bottom: 5px;">检查是否在黑名单中</p>
-                    <p style="font-size: 12px; color: #888; margin-bottom: 10px;">/mock-api/blacklist/check</p>
-                    <button class="btn btn-info" style="width: 100%; font-size: 12px;">选择此案例</button>
+                <div class="case-card" onclick="loadCase('blacklist')">
+                    <h4>黑名单检查</h4>
+                    <p>检查是否在黑名单中</p>
+                    <p style="color: var(--pixel-cyan);">/mock-api/blacklist/check</p>
+                    <button class="pixel-btn info" style="width: 100%; font-size: 8px; padding: 10px; margin: 10px 0 0 0;">选择此案例</button>
                 </div>
-                
+
                 <!-- 案例4：年龄验证 -->
-                <div style="border: 1px solid #e0e0e0; border-radius: 8px; padding: 15px; cursor: pointer; transition: all 0.3s;" onclick="loadCase('age')">
-                    <h4 style="color: #667eea; margin-bottom: 10px;">年龄验证</h4>
-                    <p style="font-size: 12px; margin-bottom: 5px;">根据身份证号计算年龄</p>
-                    <p style="font-size: 12px; color: #888; margin-bottom: 10px;">/mock-api/age/verify</p>
-                    <button class="btn btn-info" style="width: 100%; font-size: 12px;">选择此案例</button>
+                <div class="case-card" onclick="loadCase('age')">
+                    <h4>年龄验证</h4>
+                    <p>根据身份证号计算年龄</p>
+                    <p style="color: var(--pixel-cyan);">/mock-api/age/verify</p>
+                    <button class="pixel-btn info" style="width: 100%; font-size: 8px; padding: 10px; margin: 10px 0 0 0;">选择此案例</button>
                 </div>
-                
+
                 <!-- 案例5：手机号验证 -->
-                <div style="border: 1px solid #e0e0e0; border-radius: 8px; padding: 15px; cursor: pointer; transition: all 0.3s;" onclick="loadCase('phone')">
-                    <h4 style="color: #667eea; margin-bottom: 10px;">手机号验证</h4>
-                    <p style="font-size: 12px; margin-bottom: 5px;">验证手机号格式和运营商</p>
-                    <p style="font-size: 12px; color: #888; margin-bottom: 10px;">/mock-api/phone/verify</p>
-                    <button class="btn btn-info" style="width: 100%; font-size: 12px;">选择此案例</button>
+                <div class="case-card" onclick="loadCase('phone')">
+                    <h4>手机号验证</h4>
+                    <p>验证手机号格式和运营商</p>
+                    <p style="color: var(--pixel-cyan);">/mock-api/phone/verify</p>
+                    <button class="pixel-btn info" style="width: 100%; font-size: 8px; padding: 10px; margin: 10px 0 0 0;">选择此案例</button>
                 </div>
-                
+
                 <!-- 案例6：银行四要素 -->
-                <div style="border: 1px solid #e0e0e0; border-radius: 8px; padding: 15px; cursor: pointer; transition: all 0.3s;" onclick="loadCase('bank')">
-                    <h4 style="color: #667eea; margin-bottom: 10px;">银行四要素验证</h4>
-                    <p style="font-size: 12px; margin-bottom: 5px;">验证姓名、身份证、银行卡</p>
-                    <p style="font-size: 12px; color: #888; margin-bottom: 10px;">/mock-api/bank/verify</p>
-                    <button class="btn btn-info" style="width: 100%; font-size: 12px;">选择此案例</button>
+                <div class="case-card" onclick="loadCase('bank')">
+                    <h4>银行四要素验证</h4>
+                    <p>验证姓名、身份证、银行卡</p>
+                    <p style="color: var(--pixel-cyan);">/mock-api/bank/verify</p>
+                    <button class="pixel-btn info" style="width: 100%; font-size: 8px; padding: 10px; margin: 10px 0 0 0;">选择此案例</button>
                 </div>
             </div>
         </div>
@@ -486,7 +842,7 @@
                 alert('保存失败：' + error);
             });
         }
-        
+
         // 加载API列表 - 通过Gateway访问
         function loadApiList() {
             fetch(GatewayConfig.getApiUrl('external', '/config/list'))
@@ -494,24 +850,24 @@
             .then(data => {
                 const tbody = document.getElementById('apiList');
                 tbody.innerHTML = '';
-                
+
                 data.forEach(api => {
                     const row = document.createElement('tr');
                     row.innerHTML = `
                         <td>${api.apiName}</td>
-                        <td>${api.apiUrl}</td>
+                        <td style="font-size: 8px;">${api.apiUrl}</td>
                         <td>${api.httpMethod}</td>
                         <td class="${api.enabled ? 'status-enabled' : 'status-disabled'}">
                             ${api.enabled ? '启用' : '停用'}
                         </td>
-                        <td>${new Date(api.createdAt).toLocaleString()}</td>
+                        <td style="font-size: 8px;">${new Date(api.createdAt).toLocaleString()}</td>
                         <td>
-                            <button class="btn btn-info" onclick='editApi(${JSON.stringify(api)})'>编辑</button>
-                            <button class="btn btn-warning" onclick="toggleApi('${api.apiId}', ${!api.enabled})">
+                            <button class="pixel-btn info" style="padding: 8px 12px; font-size: 8px; margin: 2px;" onclick='editApi(${JSON.stringify(api)})'>编辑</button>
+                            <button class="pixel-btn warning" style="padding: 8px 12px; font-size: 8px; margin: 2px;" onclick="toggleApi('${api.apiId}', ${!api.enabled})">
                                 ${api.enabled ? '停用' : '启用'}
                             </button>
-                            <button class="btn btn-success" onclick="openTestModal('${api.apiId}')">测试</button>
-                            <button class="btn btn-secondary" onclick="deleteApi('${api.apiId}')">删除</button>
+                            <button class="pixel-btn success" style="padding: 8px 12px; font-size: 8px; margin: 2px;" onclick="openTestModal('${api.apiId}')">测试</button>
+                            <button class="pixel-btn secondary" style="padding: 8px 12px; font-size: 8px; margin: 2px;" onclick="deleteApi('${api.apiId}')">删除</button>
                         </td>
                     `;
                     tbody.appendChild(row);
@@ -521,7 +877,7 @@
                 console.error('加载API列表失败：', error);
             });
         }
-        
+
         // 编辑API
         function editApi(api) {
             document.getElementById('apiId').value = api.apiId;
@@ -534,10 +890,10 @@
             document.getElementById('headers').value = api.headers || '';
             document.getElementById('timeout').value = api.timeout || 5000;
             document.getElementById('description').value = api.description || '';
-            
+
             window.scrollTo(0, 0);
         }
-        
+
         // 切换API状态 - 通过Gateway访问
         function toggleApi(apiId, enabled) {
             fetch(GatewayConfig.getApiUrl('external', `/config/toggle/${apiId}?enabled=${enabled}`), {
@@ -552,7 +908,7 @@
                 alert('操作失败：' + error);
             });
         }
-        
+
         // 删除API - 通过Gateway访问
         function deleteApi(apiId) {
             if (!confirm('确定要删除这个API配置吗？')) {
@@ -571,7 +927,7 @@
                 alert('删除失败：' + error);
             });
         }
-        
+
         // 打开测试弹窗
         function openTestModal(apiId) {
             currentTestApiId = apiId;
@@ -579,17 +935,17 @@
             document.getElementById('testResult').innerHTML = '';
             document.getElementById('testData').value = '';
         }
-        
+
         // 关闭测试弹窗
         function closeTestModal() {
             document.getElementById('testModal').style.display = 'none';
             currentTestApiId = null;
         }
-        
+
         // 执行测试
         function executeTest() {
             if (!currentTestApiId) return;
-            
+
             let testData = {};
             try {
                 const testDataStr = document.getElementById('testData').value.trim();
@@ -600,7 +956,7 @@
                 alert('测试数据JSON格式错误：' + e.message);
                 return;
             }
-            
+
             fetch(GatewayConfig.getApiUrl('external', `/test/${currentTestApiId}`), {
                 method: 'POST',
                 headers: {
@@ -642,10 +998,10 @@
                     const apiConfig = configs.find(config => config.apiId === currentTestApiId);
                     if (apiConfig) {
                         let exampleData = {};
-                        
+
                         // 根据API名称或URL判断使用哪种示例数据
                         const apiName = apiConfig.apiName.toLowerCase();
-                        
+
                         if (apiName.includes('残疾') || apiName.includes('disability')) {
                             exampleData = {
                                 idCard: "110101199001011234",
@@ -685,7 +1041,7 @@
                                 phone: "13800138000"
                             };
                         }
-                        
+
                         document.getElementById('testData').value = JSON.stringify(exampleData, null, 2);
                     }
                 })
@@ -713,14 +1069,14 @@
         function clearTestData() {
             document.getElementById('testData').value = '';
         }
-        
+
         // 重置表单
         function resetForm() {
             document.getElementById('apiConfigForm').reset();
             document.getElementById('apiId').value = '';
             document.getElementById('timeout').value = '5000';
         }
-        
+
         // 加载示例
         function loadExample() {
             document.getElementById('apiName').value = '残疾人身份验证';
@@ -752,7 +1108,7 @@
         // 加载案例配置
         function loadCase(caseType) {
             const baseUrl = 'http://localhost:8080';
-            
+
             switch(caseType) {
                 case 'disability':
                     document.getElementById('apiName').value = '残疾人身份验证';
@@ -766,7 +1122,7 @@
                     document.getElementById('successCondition').value = 'response == true';
                     document.getElementById('description').value = '验证身份证是否为残疾人身份';
                     break;
-                    
+
                 case 'credit':
                     document.getElementById('apiName').value = '信用评分查询';
                     document.getElementById('apiUrl').value = baseUrl + '/mock-api/credit/score';
@@ -779,7 +1135,7 @@
                     document.getElementById('successCondition').value = 'response >= 700';
                     document.getElementById('description').value = '获取信用评分（500-850分）';
                     break;
-                    
+
                 case 'blacklist':
                     document.getElementById('apiName').value = '黑名单检查';
                     document.getElementById('apiUrl').value = baseUrl + '/mock-api/blacklist/check';
@@ -792,7 +1148,7 @@
                     document.getElementById('successCondition').value = 'response == false';
                     document.getElementById('description').value = '检查是否在黑名单中';
                     break;
-                    
+
                 case 'age':
                     document.getElementById('apiName').value = '年龄验证';
                     document.getElementById('apiUrl').value = baseUrl + '/mock-api/age/verify';
@@ -805,7 +1161,7 @@
                     document.getElementById('successCondition').value = 'response == true';
                     document.getElementById('description').value = '根据身份证号验证年龄';
                     break;
-                    
+
                 case 'phone':
                     document.getElementById('apiName').value = '手机号验证';
                     document.getElementById('apiUrl').value = baseUrl + '/mock-api/phone/verify';
@@ -817,7 +1173,7 @@
                     document.getElementById('successCondition').value = 'response == true';
                     document.getElementById('description').value = '验证手机号格式和运营商';
                     break;
-                    
+
                 case 'bank':
                     document.getElementById('apiName').value = '银行四要素验证';
                     document.getElementById('apiUrl').value = baseUrl + '/mock-api/bank/verify';
@@ -833,22 +1189,22 @@
                     document.getElementById('description').value = '验证姓名、身份证、银行卡是否匹配';
                     break;
             }
-            
+
             // 通用设置
             document.getElementById('headers').value = JSON.stringify({
                 'Content-Type': 'application/json'
             }, null, 2);
             document.getElementById('timeout').value = '5000';
-            
+
             // 关闭弹窗
             closeCaseModal();
         }
-        
+
         // 点击弹窗外部关闭
         window.onclick = function(event) {
             const testModal = document.getElementById('testModal');
             const caseModal = document.getElementById('caseModal');
-            
+
             if (event.target == testModal) {
                 closeTestModal();
             }

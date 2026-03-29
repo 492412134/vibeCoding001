@@ -8,6 +8,7 @@ import com.example.payment.payment.service.PaymentAggregator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.env.Environment;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -33,14 +34,24 @@ public class PaymentController {
     @Autowired
     private PaymentRequestRepository paymentRequestRepository;
 
+    @Autowired
+    private Environment environment;
+
     private final PaymentMetrics metrics = PaymentMetrics.getInstance();
+
+    /**
+     * 获取当前服务端口号
+     */
+    private String getServerPort() {
+        return environment.getProperty("local.server.port", "unknown");
+    }
 
     /**
      * 单笔支付接口
      */
     @PostMapping("/single")
     public ResponseEntity<Map<String, Object>> singlePay(@RequestBody PaymentRequest request) {
-        logger.info("Received single payment request: {}", request.getRequestId());
+        logger.info("[Port:{}] Received single payment request: {}", getServerPort(), request.getRequestId());
 
         // 参数校验
         Map<String, Object> validationResult = validateRequest(request);
@@ -57,7 +68,8 @@ public class PaymentController {
         response.put("data", Map.of(
                 "requestId", request.getRequestId(),
                 "status", PaymentStatus.PENDING.getCode(),
-                "statusDesc", PaymentStatus.PENDING.getDescription()
+                "statusDesc", PaymentStatus.PENDING.getDescription(),
+                "serverPort", getServerPort()
         ));
 
         return ResponseEntity.ok(response);
@@ -184,6 +196,8 @@ public class PaymentController {
      */
     @GetMapping("/threads")
     public ResponseEntity<Map<String, Object>> getThreadStatus() {
+        logger.info("[Port:{}] 支付节点，查询当前支付线程池状态", getServerPort());
+
         List<PaymentAggregator.ThreadStatus> threadList = paymentAggregator.getThreadStatusList();
 
         List<Map<String, Object>> threads = threadList.stream()
